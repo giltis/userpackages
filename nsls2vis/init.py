@@ -9,9 +9,40 @@ from vistrails.core.modules.config import IPort, OPort
 from vistrails.packages.spreadsheet.basic_widgets import SpreadsheetCell
 from vistrails.packages.spreadsheet.spreadsheet_cell import QCellWidget
 from vistools.qt_widgets import StackScanner
-#------------------------------------------ from matplotlib.figure import Figure
-# from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas  # noqa
+from vistools.qt_widgets import MainWindow
 
+
+class VisCell(SpreadsheetCell):
+    _input_ports = [
+        IPort(name="data", label="Data to display",signature="basic:List"),
+        IPort(name="type", label="Data view to display",
+              signature="basic:String", entry_type="enum",
+              values=[str(MainWindow.messenger_classes[0]),
+                      str(MainWindow.messenger_classes[1])]),
+    ]
+
+    _output_ports = [
+        OPort(name="displayed_data", signature="basic:List"),
+    ]
+
+    def compute(self):
+        data = self.get_input("data")
+        type = self.get_input("type")
+        self._widg = self.displayAndWait(VisCellWidget, (data,type,))
+
+
+class VisCellWidget(QCellWidget):
+
+    def __init__(self, parent=None):
+        super(VisCellWidget, self).__init__(parent=parent)
+
+    def update_contents(self, input_ports):
+        (data,type) = input_ports
+        layout = QtGui.QHBoxLayout()
+        widg = MainWindow(messenger_class=type, data_list=data)
+        layout.addWidget(widg)
+        self.setLayout(layout)
+        QCellWidget.updateContents(self, input_ports)
 
 class StackScannerCell(SpreadsheetCell):
     _input_ports = [
@@ -20,7 +51,7 @@ class StackScannerCell(SpreadsheetCell):
         ]
     
     _output_ports = [
-        OPort(name="arr_2d", signature="basic:List"),
+        OPort(name="displayed_image", signature="basic:List"),
         ]
     
     def compute(self):
@@ -28,7 +59,8 @@ class StackScannerCell(SpreadsheetCell):
         self.cellWidget = self.displayAndWait(StackScannerCellWidget, (img_stack,))
     
     def set_out_arr(self, arr_2d):
-        self.set_output("arr_2d", arr_2d)
+        self.set_output("displayed_image", arr_2d)
+
 
 class StackScannerCellWidget(QCellWidget):
     
