@@ -4,7 +4,7 @@ Created on Apr 29, 2014
 @author: edill
 '''
 from PyQt4 import QtCore, QtGui
-from vistrails.core.modules.vistrails_module import Module
+from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 from vistrails.packages.spreadsheet.basic_widgets import SpreadsheetCell
 from vistrails.packages.spreadsheet.spreadsheet_cell import QCellWidget
@@ -13,6 +13,7 @@ import numpy as np
 
 
 class DataGen(Module):
+    _settings = ModuleSettings(namespace="nsls2|vis|test")
     _input_ports = [
         IPort(name="num_datasets", label="Number of datasets to generate",
               signature="basic:Integer"),
@@ -82,6 +83,7 @@ class DataGen(Module):
 
 
 class CrossSectionCell(SpreadsheetCell):
+    _settings = ModuleSettings(namespace="nsls2|vis")
     _input_ports = [
         IPort(name="data", label="Data to display",signature="basic:List"),
         IPort(name="keys", label="Names of the data",signature="basic:List"),
@@ -112,6 +114,7 @@ class CrossSectionWidget(QCellWidget):
 
 
 class Stack1DCell(SpreadsheetCell):
+    _settings = ModuleSettings(namespace="nsls2|vis")
     _input_ports = [
         IPort(name="data", label="Data to display",signature="basic:List"),
         IPort(name="keys", label="Names of the data",signature="basic:List"),
@@ -149,4 +152,8 @@ class Stack1DWidget(QCellWidget):
 
 
 
-_modules = [CrossSectionCell, Stack1DCell, DataGen]
+#modules = [CrossSectionCell, Stack1DCell, DataGen]
+
+
+def modules():
+    return [CrossSectionCell, Stack1DCell, DataGen]
