@@ -155,5 +155,5 @@ class Stack1DWidget(QCellWidget):
 #modules = [CrossSectionCell, Stack1DCell, DataGen]
 
 
-def modules():
+def vistrails_modules():
     return [CrossSectionCell, Stack1DCell, DataGen]
