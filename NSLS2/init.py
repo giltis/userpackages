@@ -3,12 +3,14 @@ Created on Apr 29, 2014
 
 @author: edill
 '''
-
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+import six
 # local packages to import
-import vis, broker
+import vis, broker, io
 
 # create a list of module lists that need to be registered in the nsls2 package
-pymod_list = [vis, broker]
+pymod_list = [vis, broker, io]
 
 # create a single list of modules that need to be registered in
 # the nsls2 package

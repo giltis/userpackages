@@ -1,5 +1,5 @@
-identifier = 'nsls2'
-name = 'nsls2'
+identifier = 'NSLS2'
+name = 'NSLS2'
 version = '0.0.0'
 
 def package_dependencies():
