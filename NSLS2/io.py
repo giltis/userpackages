@@ -8,11 +8,13 @@ from vistrails.core.modules.config import IPort, OPort
 from pims.extern.tifffile import imread
 from nsls2.io.binary import read_binary
 
+
 class ReadTiff(Module):
     _settings = ModuleSettings(namespace="NSLS2|io")
 
     _input_ports = [
-        IPort(name="files", label="List of files",signature="basic:List"),
+        IPort(name="files", label="List of files",
+              signature="basic:List"),
     ]
 
     _output_ports = [
@@ -25,6 +27,7 @@ class ReadTiff(Module):
         for file in files_list:
             data_list.append(imread(file))
         self.set_output("data", data_list)
+
 
 class ReadBinary(Module):
     _settings = ModuleSettings(namespace="NSLS2|io")
