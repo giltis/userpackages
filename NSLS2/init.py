@@ -26,7 +26,6 @@ except:
     print("importing broker failed")
 else:
     pymod_list.append(broker)
-    pass
 
 try:
     from . import io
