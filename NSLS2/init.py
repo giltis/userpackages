@@ -46,3 +46,6 @@ def get_modules():
 
 # init the modules list
 _modules = get_modules()
+
+from . import utils
+utils.setup_bnl_menu()
