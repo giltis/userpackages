@@ -1,6 +1,6 @@
-identifier = 'gov.nsls2.vis'
-name = 'nsls2_vis'
-version = '0.1'
+identifier = 'NSLS2'
+name = 'NSLS2'
+version = '0.0.0'
 
 def package_dependencies():
     import vistrails.core.packagemanager
