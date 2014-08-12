@@ -30,8 +30,6 @@
 ################################################################################
 '''
 Created on Apr 29, 2014
-
-@author: edill
 '''
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)

@@ -30,8 +30,6 @@
 ################################################################################
 '''
 Created on Apr 29, 2014
-
-@author: edill
 '''
 from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
