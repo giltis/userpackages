@@ -32,6 +32,9 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE   #
 # POSSIBILITY OF SUCH DAMAGE.                                          #
 ########################################################################
+import logging
+logger = logging.getLogger(__name__)
+
 identifier = 'NSLS2'
 name = 'NSLS2'
 version = '0.0.0'

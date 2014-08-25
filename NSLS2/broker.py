@@ -41,10 +41,9 @@ import six
 from PyQt4 import QtCore, QtGui
 from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
-from vistrails.packages.spreadsheet.basic_widgets import SpreadsheetCell
-from vistrails.packages.spreadsheet.spreadsheet_cell import QCellWidget
-from vistools.qt_widgets import CrossSectionMainWindow, Stack1DMainWindow
 import numpy as np
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     from metadataStore.userapi.commands import search
@@ -57,6 +56,7 @@ try:
     from metadataStore.userapi.commands import search_keys_dict
 except ImportError:
     search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
+
 
 class BrokerQuery(Module):
     _settings = ModuleSettings(namespace="NSLS2|io",

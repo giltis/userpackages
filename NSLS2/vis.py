@@ -47,6 +47,8 @@ from vistools.qt_widgets import CrossSectionMainWindow, Stack1DMainWindow, displ
 import numpy as np
 from vistrails.gui.modules.constant_configuration import ConstantEnumWidgetBase
 from vistrails.gui.modules.module_configure import StandardModuleConfigurationWidget
+import logging
+logger = logging.getLogger(__name__)
 
 
 class DataGen(Module):

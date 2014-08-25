@@ -40,6 +40,8 @@ from vistrails import api
 from logging import Handler
 from vistools.qt_widgets import query_widget
 from .broker import search_keys_dict, search
+import logging
+logger = logging.getLogger(__name__)
 
 
 def search_databroker(search_dict):
