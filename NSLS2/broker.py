@@ -45,8 +45,18 @@ from vistrails.packages.spreadsheet.basic_widgets import SpreadsheetCell
 from vistrails.packages.spreadsheet.spreadsheet_cell import QCellWidget
 from vistools.qt_widgets import CrossSectionMainWindow, Stack1DMainWindow
 import numpy as np
-from metadataStore.userapi.commands import search
 
+try:
+    from metadataStore.userapi.commands import search
+except ImportError:
+    def search(*args, **kwargs):
+        err_msg = "NSLS2 data broker is not importable. Search cannot proceed"
+        print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
+        logger.warning(err_msg)
+try:
+    from metadataStore.userapi.commands import search_keys_dict
+except ImportError:
+    search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
 
 class BrokerQuery(Module):
     _settings = ModuleSettings(namespace="NSLS2|io",
@@ -56,7 +66,7 @@ class BrokerQuery(Module):
     _input_ports = [
         IPort(name="query_dict", label="Query for the data broker",
               signature="basic:Dictionary"),
-        IPort(name="complete_record", label="Return the complete record",
+        IPort(name="is_returning_data", label="Return data with search results",
               signature="basic:Boolean", default=True)
     ]
 
@@ -66,8 +76,8 @@ class BrokerQuery(Module):
 
     def compute(self):
         query = self.get_input("query_dict")
-        complete = self.get_input("complete_record")
-        query["contents"] = complete
+        data = self.get_input("is_returning_data")
+        query["data"] = data
         result = search(**query)
         self.set_output("query_result", result)
 

@@ -39,8 +39,17 @@ from vistrails import api
 
 from logging import Handler
 from vistools.qt_widgets import query_widget
+from .broker import search_keys_dict, search
 
-query_window = query_widget.QueryMainWindow(keys=['a', 'b'])
+
+def search_databroker(search_dict):
+    print("search: {0}".format(search_dict))
+    result=search(**search_dict)
+    print("result: {0}".format(result))
+    return result
+
+query_window = query_widget.QueryMainWindow(keys=search_keys_dict,
+                                            search_func=search_databroker)
 
 
 def setup_bnl_menu():

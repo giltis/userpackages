@@ -53,7 +53,7 @@ else:
     pymod_list.append(vis)
 
 try:
-    import broker
+    from . import broker
 except:
     print("importing broker failed")
 else:
