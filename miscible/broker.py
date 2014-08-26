@@ -49,7 +49,8 @@ try:
     from metadataStore.userapi.commands import search
 except ImportError:
     def search(*args, **kwargs):
-        err_msg = "NSLS2 data broker is not importable. Search cannot proceed"
+        err_msg = ("search from metadataStore.userapi.commands is not "
+                   "importable. Search cannot proceed")
         print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
         logger.warning(err_msg)
 try:
@@ -57,13 +58,23 @@ try:
 except ImportError:
     search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
 
+try:
+    from metadataStore.analysisapi.utility import listify
+except ImportError:
+    def listify(*args, **kwargs):
+        err_msg = ("listify from metadataStore.analysis.utility is not "
+                   "importable. run_header cannot be listified")
+        print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
+        logger.warning(err_msg)
+
 
 class BrokerQuery(Module):
-    _settings = ModuleSettings(namespace="NSLS2|io",
-                               configure_widget=
-                               "vis:NestedDictConfigurationWidget")
+    _settings = ModuleSettings(namespace="broker")
 
     _input_ports = [
+        IPort(name="unique_query_dict",
+              label="guaranteed unique query for the data broker",
+              signature="basic:Dictionary"),
         IPort(name="query_dict", label="Query for the data broker",
               signature="basic:Dictionary"),
         IPort(name="is_returning_data", label="Return data with search results",
@@ -71,16 +82,53 @@ class BrokerQuery(Module):
     ]
 
     _output_ports = [
-        OPort(name="query_result", signature="basic:List")
+        OPort(name="query_result", signature="basic:Dictionary")
     ]
 
     def compute(self):
-        query = self.get_input("query_dict")
+        if self.has_input("unique_query_dict"):
+            query = self.get_input("unique_query_dict")
+        elif self.has_input("query_dict"):
+            query = self.get_input("query_dict")
+
         data = self.get_input("is_returning_data")
         query["data"] = data
         result = search(**query)
         self.set_output("query_result", result)
 
 
+class Listify(Module):
+    _settings = ModuleSettings(namespace="broker")
+
+    _input_ports = [
+        IPort(name="data_keys",
+              label="The data key to turn in to a list",
+              signature="basic:String"),
+        IPort(name="run_header",
+              label="Run header from the data broker",
+              signature="basic:Dictionary"),
+    ]
+
+    _output_ports = [
+        OPort(name="listified_data", signature="basic:List"),
+        OPort(name="data_keys", signature="basic:List"),
+        OPort(name="listified_time", signature="basic:List"),
+    ]
+
+    def compute(self):
+        key = None
+        if self.has_input("data_keys"):
+            key = self.get_input("data_keys")
+        header = self.get_input("run_header")
+        data, keys, time = listify(data_keys=key, run_header=header)
+        print('data ', data)
+        print('keys ', keys)
+        print('time ', time)
+        # set the module's output
+        self.set_output("data_keys", keys)
+        self.set_output("listified_data", data)
+        self.set_output("listified_time", time)
+
+
 def vistrails_modules():
-    return [BrokerQuery]
+    return [BrokerQuery, Listify]

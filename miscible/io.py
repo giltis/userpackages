@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 class ReadTiff(Module):
-    _settings = ModuleSettings(namespace="NSLS2|io")
+    _settings = ModuleSettings(namespace="io")
 
     _input_ports = [
         IPort(name="files", label="List of files",
@@ -65,7 +65,7 @@ class ReadTiff(Module):
 
 
 class ReadBinary(Module):
-    _settings = ModuleSettings(namespace="NSLS2|io")
+    _settings = ModuleSettings(namespace="io")
 
     _input_ports = [
         IPort(name="files", label="List of files", signature="basic:List"),
@@ -91,7 +91,7 @@ class ReadBinary(Module):
         files_list = self.get_input("files")
         try:
             params_dict = self.get_input("params_dict")
-        except Exception:
+        except ModuleError:
             params_dict = self._gather_input()
 
         data = []
