@@ -39,6 +39,7 @@ from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 from pims.extern.tifffile import imread
 from nsls2.io.binary import read_binary
+
 import logging
 logger = logging.getLogger(__name__)
 
