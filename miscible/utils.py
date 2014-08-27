@@ -36,12 +36,20 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import six
 from vistrails import api
-
+print("vistrails api import successful")
 from logging import Handler
+print("logging Handler import successful")
 from vistools.qt_widgets import query_widget
-from .broker import search_keys_dict, search
+print("vistools qt_widgets query_widget import successful")
+from .broker import search_keys_dict
+print("search_keys_dict import successful")
+print(search_keys_dict)
+from .broker import search
+print("search import successful")
 import logging
+print("logging import successful")
 logger = logging.getLogger(__name__)
+print("logger defined")
 
 
 def search_databroker(search_dict):
@@ -50,25 +58,30 @@ def search_databroker(search_dict):
     print("result: {0}".format(result))
     return result
 
+print("search_databroker function defined")
 query_window = query_widget.QueryMainWindow(keys=search_keys_dict,
                                             search_func=search_databroker)
 
+print("query_window initialized")
 
 def setup_bnl_menu():
     """
     Creates and hooks up a BNL specific menu in the main window
     """
+    print("in setup_bnl_menu")
     bw = api.get_builder_window()
+    print("builder window obtained")
     # grab the menu bar
     menu_bar = bw.menuBar()
+    print("menu bar obtained")
 
     bnl_menu = menu_bar.addMenu("BNL")
-
+    print("bnl menu added")
     def foo():
         query_window.show()
-
+    print("foo defined")
     bnl_menu.addAction("demo", foo)
-
+    print("foo added to menu")
 
 class ForwardingHandler(Handler):
     """

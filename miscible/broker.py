@@ -43,20 +43,28 @@ from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
 import logging
+from pymongo.errors import ConnectionFailure
+
 logger = logging.getLogger(__name__)
 
 try:
     from metadataStore.userapi.commands import search
-except ImportError:
+except (ImportError, ConnectionFailure) as e:
     def search(*args, **kwargs):
         err_msg = ("search from metadataStore.userapi.commands is not "
                    "importable. Search cannot proceed")
         print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
         logger.warning(err_msg)
+
 try:
     from metadataStore.userapi.commands import search_keys_dict
-except ImportError:
-    search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
+except (ImportError, ConnectionFailure) as e:
+    search_keys_dict = {}
+    search_keys_dict["broker_unavailable"] = {
+    "description": "The data broker is unavailable.",
+    "type": int,
+    "validate_fun": int
+    }
 
 try:
     from metadataStore.analysisapi.utility import listify
