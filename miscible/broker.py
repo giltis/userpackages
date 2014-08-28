@@ -43,28 +43,20 @@ from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
 import logging
-from pymongo.errors import ConnectionFailure
-
 logger = logging.getLogger(__name__)
 
 try:
     from metadataStore.userapi.commands import search
-except (ImportError, ConnectionFailure) as e:
+except ImportError:
     def search(*args, **kwargs):
         err_msg = ("search from metadataStore.userapi.commands is not "
                    "importable. Search cannot proceed")
         print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
         logger.warning(err_msg)
-
 try:
     from metadataStore.userapi.commands import search_keys_dict
-except (ImportError, ConnectionFailure) as e:
-    search_keys_dict = {}
-    search_keys_dict["broker_unavailable"] = {
-    "description": "The data broker is unavailable.",
-    "type": int,
-    "validate_fun": int
-    }
+except ImportError:
+    search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
 
 try:
     from metadataStore.analysisapi.utility import listify
@@ -94,15 +86,21 @@ class BrokerQuery(Module):
     ]
 
     def compute(self):
+        if self.has_input("query_dict"):
+            query = self.get_input("query_dict")
+            return_only_one = False
         if self.has_input("unique_query_dict"):
             query = self.get_input("unique_query_dict")
-        elif self.has_input("query_dict"):
-            query = self.get_input("query_dict")
+            return_only_one = True
 
         data = self.get_input("is_returning_data")
         query["data"] = data
         result = search(**query)
+        if return_only_one:
+            keys = list(result)
+            result = result[keys[0]]
         self.set_output("query_result", result)
+        print("result: {0}".format(list(result)))
 
 
 class Listify(Module):
@@ -128,7 +126,15 @@ class Listify(Module):
         if self.has_input("data_keys"):
             key = self.get_input("data_keys")
         header = self.get_input("run_header")
-        data, keys, time = listify(data_keys=key, run_header=header)
+        data_dict = listify(data_keys=key, run_header=header)
+        time = data_dict.pop('time')
+        keys = list(data_dict)
+        data = []
+        if len(keys) > 1:
+            for key in keys:
+                data.append(data_dict[key])
+        else:
+            data = data_dict[key]
         print('data ', data)
         print('keys ', keys)
         print('time ', time)
