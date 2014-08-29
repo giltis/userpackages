@@ -80,6 +80,8 @@ def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
 
     # get the datakeys from the run header
     data_keys = get_data_keys(single_result)
+    if 'time' in data_keys:
+        data_keys.remove('time')
     horz_offset = 250
     vert_offset = -300
     index = 0
@@ -168,7 +170,13 @@ def gen_unique_id(run_header):
     """
     print("run_header.__class__: {0}".format(run_header.__class__))
     print("run_header: {0}".format(run_header))
-    return {"_id": run_header["_id"]}
+    return_dict = {"owner": run_header["owner"],
+                   "data": True,
+                   "scan_id": run_header["scan_id"]
+                   }
+
+
+    return return_dict
 
 
 def search_databroker(search_dict):
