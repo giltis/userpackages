@@ -128,6 +128,7 @@ class Listify(Module):
         header = self.get_input("run_header")
         data_dict = listify(data_keys=key, run_header=header)
         time = data_dict.pop('time')
+        time = [t.isoformat() for t in time]
         keys = list(data_dict)
         data = []
         if len(keys) > 1:
