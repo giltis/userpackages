@@ -35,7 +35,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
-identifier = 'NSLS2'
+identifier = 'org.vistrails.vistrails.NSLS2'
 name = 'NSLS2'
 version = '0.0.0'
 

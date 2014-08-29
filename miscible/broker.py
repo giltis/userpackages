@@ -92,7 +92,7 @@ class BrokerQuery(Module):
         if self.has_input("unique_query_dict"):
             query = self.get_input("unique_query_dict")
             return_only_one = True
-
+        print("broker_query: {0}".format(query))
         data = self.get_input("is_returning_data")
         query["data"] = data
         result = search(**query)
