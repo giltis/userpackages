@@ -51,7 +51,6 @@ except ImportError:
     def search(*args, **kwargs):
         err_msg = ("search from metadataStore.userapi.commands is not "
                    "importable. Search cannot proceed")
-        print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
         logger.warning(err_msg)
 try:
     from metadataStore.userapi.commands import search_keys_dict
@@ -64,7 +63,6 @@ except ImportError:
     def listify(*args, **kwargs):
         err_msg = ("listify from metadataStore.analysis.utility is not "
                    "importable. run_header cannot be listified")
-        print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
         logger.warning(err_msg)
 
 
@@ -92,7 +90,7 @@ class BrokerQuery(Module):
         if self.has_input("unique_query_dict"):
             query = self.get_input("unique_query_dict")
             return_only_one = True
-        print("broker_query: {0}".format(query))
+        logger.debug("broker_query: {0}".format(query))
         data = self.get_input("is_returning_data")
         query["data"] = data
         result = search(**query)
@@ -100,7 +98,7 @@ class BrokerQuery(Module):
             keys = list(result)
             result = result[keys[0]]
         self.set_output("query_result", result)
-        print("result: {0}".format(list(result)))
+        logger.debug("result: {0}".format(list(result)))
 
 
 class Listify(Module):
@@ -128,6 +126,8 @@ class Listify(Module):
         header = self.get_input("run_header")
         data_dict = listify(data_keys=key, run_header=header)
         time = data_dict.pop('time')
+        logger.debug("time element class: {0}".format(time[0].__class__))
+        logger.debug("time: {0}".format(time))
         time = [t.isoformat() for t in time]
         keys = list(data_dict)
         data = []
@@ -136,9 +136,9 @@ class Listify(Module):
                 data.append(data_dict[key])
         else:
             data = data_dict[key]
-        print('data ', data)
-        print('keys ', keys)
-        print('time ', time)
+        logger.debug('data ', data)
+        logger.debug('keys ', keys)
+        logger.debug('time ', time)
         # set the module's output
         self.set_output("data_keys", keys)
         self.set_output("listified_data", data)
