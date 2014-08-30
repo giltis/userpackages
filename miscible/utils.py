@@ -39,7 +39,6 @@ from vistrails import api
 from logging import Handler
 from vistools.qt_widgets import query_widget
 from .broker import search_keys_dict
-print(search_keys_dict)
 from .broker import search
 from metadataStore.analysisapi.utility import listify, get_data_keys
 import logging
@@ -47,8 +46,7 @@ logger = logging.getLogger(__name__)
 from vistrails import api
 
 
-def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
-                                    single_result):
+def add_to_canvas(query_dict, unique_query_dict, single_result):
 
     # get the controller (will be needed to change the module names
     controller = api.get_current_controller()
@@ -63,7 +61,7 @@ def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
 
     # add the unique search dictionary to the canvas
     mod_dict_unique = api.add_module(200, 0, 'org.vistrails.vistrails.basic',
-                                     'Dictionary','')
+                                     'Dictionary', '')
     api.change_parameter(mod_dict_unique.id, 'value', [unique_query_dict])
     mod_ids.append(mod_dict_unique.id)
 
@@ -86,7 +84,6 @@ def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
     vert_offset = -300
     index = 0
     for key in data_keys:
-        print(key)
         # add the vistrails module for the listify key
         mod_key = api.add_module(horz_offset * index, vert_offset+100,
                                  'org.vistrails.vistrails.basic', 'String', '')
@@ -114,7 +111,8 @@ def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
         # if this is the first key, add the time list module
         if index == 0:
             mod_time = api.add_module(-200, vert_offset-100,
-                                      'org.vistrails.vistrails.basic', 'List', '')
+                                      'org.vistrails.vistrails.basic', 'List',
+                                      '')
             conn_ids.append(api.add_connection(mod_listify.id,
                                                'listified_time', mod_time.id,
                                                'value').id)
@@ -142,10 +140,10 @@ def add_query_and_listify_to_canvas(query_dict, unique_query_dict,
                               mod_dict_unique.id)
     controller.current_pipeline_scene.recreate_module(
         controller.current_pipeline, mod_dict_unique.id)
-    print("mod_ids: {0}".format(mod_ids))
-    print("conn_ids: {0}".format(conn_ids))
+    logger.debug("mod_ids: {0}".format(mod_ids))
+    logger.debug("conn_ids: {0}".format(conn_ids))
     group = api.create_group(mod_ids, conn_ids)
-    print("group class: {0}".format(group.__class__))
+    logger.debug("group class: {0}".format(group.__class__))
 
     controller.add_annotation(('__desc__', 'Broker Search Group'), group.id)
     controller.current_pipeline_scene.recreate_module(
@@ -168,13 +166,12 @@ def gen_unique_id(run_header):
         metadataStore.userapi.commands.search will guarantee that a single run
         header is returned
     """
-    print("run_header.__class__: {0}".format(run_header.__class__))
-    print("run_header: {0}".format(run_header))
+    logger.debug("run_header.__class__: {0}".format(run_header.__class__))
+    logger.debug("run_header: {0}".format(run_header))
     return_dict = {"owner": run_header["owner"],
                    "data": True,
                    "scan_id": run_header["scan_id"]
                    }
-
 
     return return_dict
 
@@ -195,13 +192,15 @@ def search_databroker(search_dict):
     dict
         Dictionary of run headers that get returned by the data broker
     """
-    result=search(**search_dict)
+    result = search(**search_dict)
+    logger.debug('search_dict: {0}'.format(search_dict))
+
     return result
 
 
 query_window = query_widget.QueryMainWindow(keys=search_keys_dict,
                                             search_func=search_databroker,
-                                            add_func=add_query_and_listify_to_canvas,
+                                            add_func=add_to_canvas,
                                             unique_id_func=gen_unique_id)
 
 
@@ -214,9 +213,11 @@ def setup_bnl_menu():
     menu_bar = bw.menuBar()
 
     bnl_menu = menu_bar.addMenu("BNL")
+
     def foo():
         query_window.show()
     bnl_menu.addAction("demo", foo)
+
 
 class ForwardingHandler(Handler):
     """
