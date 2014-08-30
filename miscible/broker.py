@@ -84,12 +84,18 @@ class BrokerQuery(Module):
     ]
 
     def compute(self):
+        query = None
         if self.has_input("query_dict"):
             query = self.get_input("query_dict")
             return_only_one = False
         if self.has_input("unique_query_dict"):
             query = self.get_input("unique_query_dict")
             return_only_one = True
+
+        if query is None:
+            logger.debug("no search dictionary was passed in, search "
+                         "cannot proceed")
+            return
         logger.debug("broker_query: {0}".format(query))
         data = self.get_input("is_returning_data")
         query["data"] = data
