@@ -111,12 +111,12 @@ class Listify(Module):
     _settings = ModuleSettings(namespace="broker")
 
     _input_ports = [
-        IPort(name="data_keys",
-              label="The data key to turn in to a list",
-              signature="basic:String"),
         IPort(name="run_header",
               label="Run header from the data broker",
               signature="basic:Dictionary"),
+        IPort(name="data_keys",
+              label="The data key to turn in to a list",
+              signature="basic:String"),
     ]
 
     _output_ports = [
@@ -126,22 +126,30 @@ class Listify(Module):
     ]
 
     def compute(self):
+        # gather input
+        header = None
+        if self.has_input("run_header"):
+            header = self.get_input("run_header")
+        if header is None:
+            logger.debug("listify cannot do anything without a header")
+            return
+
         key = None
         if self.has_input("data_keys"):
             key = self.get_input("data_keys")
-        header = self.get_input("run_header")
+
         data_dict = listify(data_keys=key, run_header=header)
+        # remove time from the dictionary
         time = data_dict.pop('time')
-        logger.debug("time element class: {0}".format(time[0].__class__))
-        logger.debug("time: {0}".format(time))
+        # stringify the datetime object that gets returned
         time = [t.isoformat() for t in time]
+        # get the remaining keys
         keys = list(data_dict)
-        data = []
-        if len(keys) > 1:
-            for key in keys:
-                data.append(data_dict[key])
-        else:
-            data = data_dict[key]
+        data = [data_dict[key] for key in keys]
+        # check to see if data is a list of lists
+        if len(data) == 1 and isinstance(data[0], list):
+            data = data[0]
+        # log the values set to the output ports at a debug level
         logger.debug('data ', data)
         logger.debug('keys ', keys)
         logger.debug('time ', time)
