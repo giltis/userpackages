@@ -35,13 +35,32 @@
 '''
 Created on Apr 29, 2014
 '''
-from vistrails.core.modules.vistrails_module import Module, ModuleSettings
+from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
+                                                     ModuleError)
 from vistrails.core.modules.config import IPort, OPort
 from pims.extern.tifffile import imread
 from nsls2.io.binary import read_binary
+import numpy as np
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class ReadNumpy(Module):
+    _settings = ModuleSettings(namespace="io")
+    _input_ports = [
+        IPort(name="file", label="File to read in",
+              signature="basic:List")
+    ]
+    _output_ports = [
+        OPort(name="data", signature="basic:List")
+    ]
+
+    def compute(self):
+        fnames = self.get_input('file')
+        data = []
+        data = [np.load(fname + '.npy') for fname in fnames]
+        self.set_output('data', data)
 
 
 class ReadTiff(Module):
@@ -122,4 +141,4 @@ class ReadBinary(Module):
 
 
 def vistrails_modules():
-    return [ReadTiff, ReadBinary]
+    return [ReadTiff, ReadBinary, ReadNumpy]
