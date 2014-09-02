@@ -39,14 +39,17 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import six
 from PyQt4 import QtCore, QtGui
-from vistrails.core.modules.vistrails_module import Module, ModuleSettings
+from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
+                                                     ModuleError)
 from vistrails.core.modules.config import IPort, OPort
 from vistrails.packages.spreadsheet.basic_widgets import SpreadsheetCell
 from vistrails.packages.spreadsheet.spreadsheet_cell import QCellWidget
-from vistools.qt_widgets import CrossSectionMainWindow, Stack1DMainWindow, displaydict
+from vistools.qt_widgets import (CrossSectionMainWindow, Stack1DMainWindow,
+                                 displaydict)
 import numpy as np
 from vistrails.gui.modules.constant_configuration import ConstantEnumWidgetBase
-from vistrails.gui.modules.module_configure import StandardModuleConfigurationWidget
+from vistrails.gui.modules.module_configure import \
+    StandardModuleConfigurationWidget
 import logging
 logger = logging.getLogger(__name__)
 
