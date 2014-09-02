@@ -43,6 +43,7 @@ from vistrails.core.modules.config import IPort, OPort
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
+from collections import defaultdict
 
 from nsls2.recip import process_grid, process_to_q
 
@@ -69,12 +70,12 @@ class QConversion(Module):
               signature='basic:List'),
         IPort(name='dist_sample',
               label='distance from the sample to the detector (mm)',
-              signature='basic:Float'),
+              signature='basic:List'),
         IPort(name='wavelength',
               label='wavelength of incident radiation (Angstroms)',
-              signature='basic:Float'),
+              signature='basic:List'),
         IPort(name='ub_mat',
-              label='UB matrix (orientation matrix) 3x3 matrix',
+              label='List of UB matrices (orientation matrix) 3x3 nested list',
               signature='basic:List'),
         IPort(name='calib_dict',
               label='Calibration dictionary from data broker',
@@ -85,26 +86,33 @@ class QConversion(Module):
         OPort(name='tot_set', signature='basic:List'),
     ]
 
+    _expected_length = {'setting_angles': [1, 2, 4, 6],
+                       'detector_size': [1, 2, 3],
+                       'pixel_size': [1, 2, 3],
+                       'calibrated_center': [1, 2, 3],
+                       'dist_sample': [1],
+                       'wavelength': [1],
+                       'ub_mat': [3, 9]}
+
     def compute(self):
-        mandatory = ['setting_angles', 'detector_size', 'pixel_size',
-                     'calibrated_center', 'dist_sample', 'wavelength',
-                     'ub_mat']
         dict_in = ['calib_dict']
-        optional = []
+        optional = ['setting_angles', 'detector_size', 'pixel_size',
+                    'calibrated_center', 'dist_sample', 'wavelength',
+                    'ub_mat']
+        mandatory = []
 
         # gather mandatory input
         input_dict = {m: self.get_input(m) for m in mandatory}
         # unpack dictionary input first so that duplicate ports will override
         # the dictionary input
-        for id in dict_in:
+        for key in dict_in:
             try:
-                adict = self.get_input(id)
+                adict = self.get_input(key)
                 for k, v in six.iteritems(adict):
                     input_dict[k] = v
             except ModuleError:
                 # will be thrown if there is no input on this port
-                logger.debug("No input on port: {0}".format(id))
-
+                logger.debug("No input on port: {0}".format(key))
         # gather optional input
         for o in optional:
             try:
@@ -113,7 +121,60 @@ class QConversion(Module):
                 # will be thrown if there is no input on this port
                 logger.debug("No input on port: {0}".format(o))
 
-        tot_set = process_grid(**input_dict)
+        # determine if the input parameters are of the expected length
+        # of if we got passed in a list instead
+        num_frames = []
+        # print('list(input_dict): {0}'.format(list(input_dict)))
+        nested_input_dict = {key: {} for key in input_dict}
+        for key in nested_input_dict:
+            val = input_dict[key]
+            nested_input_dict[key]['value'] = val
+            try:
+                length = len(val)
+            except TypeError:
+                # the length is 1
+                length = 1
+            # test the input length against the expected value
+            if not length in self._expected_length[key]:
+                print('expected length for {2}: {0} and actual length: {1}'
+                      ''.format(self._expected_length[key], length, key))
+                num_frames.append(length)
+                nested_input_dict[key]['is_list'] = True
+            else:
+                nested_input_dict[key]['is_list'] = False
+        # print('nested_input_dict: {0}'.format(nested_input_dict))
+        # guess at the length of the number of frames
+        if not num_frames or len(set(num_frames)) == 1:
+            logger.info("assuming {0} frames.".format(num_frames[0]))
+            num_frames = num_frames[0]
+        else:
+            raise NotImplementedError("I cannot guess how many frames there "
+                                      "are. This is the list I got: {0}\nThis"
+                                      " is the parameter dictionary: {1}"
+                                      "".format(num_frames, nested_input_dict))
+
+        # turn all variables into lists of the same length
+        for key in nested_input_dict:
+            if not nested_input_dict[key]['is_list']:
+                print('{0} is not a list'.format(key))
+                input_dict[key] = [nested_input_dict[key]['value']
+                                   for _ in range(num_frames)]
+            else:
+                print('{0} is a list'.format(key))
+                input_dict[key] = nested_input_dict[key]['value']
+        # print('input_dict: {0}'.format(input_dict))
+        # turn input parameters into a list of dicts that can be unpacked
+        # into the process_to_q method
+        param_lst = [{} for _ in range(num_frames)]
+        for index, (dct) in enumerate(param_lst):
+            for key in input_dict:
+                val = input_dict[key][index]
+                if key is 'ub_mat':
+                    # print('ub_mat val: {0}'.format(val))
+                    val = np.reshape(val, (3, 3))
+                dct[key] = val
+
+        tot_set = [process_to_q(**dct) for dct in param_lst]
 
         self.set_output('tot_set', tot_set)
 
@@ -124,7 +185,7 @@ class Grid(Module):
     _input_ports = [
         IPort(name='tot_set', label='hkl values in N x 3 array',
               signature='basic:List'),
-        IPort(name='istack', label='N x 1 array of pixel intensities',
+        IPort(name='i_stack', label='N x 1 array of pixel intensities',
               signature='basic:List'),
         IPort(name='q_min',
               label='Minimum voxel value: tuple or list of (x, y, z)',
@@ -145,7 +206,7 @@ class Grid(Module):
     ]
 
     def compute(self):
-        mandatory = ['tot_set', 'istack']
+        mandatory = ['tot_set', 'i_stack']
         optional = ['q_min', 'q_max', 'dqn']
         input_dict = {}
         # gather mandatory input
