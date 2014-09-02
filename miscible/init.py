@@ -79,6 +79,14 @@ except ImportError as e:
 else:
     pymod_list.append(nsls2wrap)
 
+try:
+    from . import utils
+except ImportError as e:
+    print("importing utils failed."
+          "\nOriginal Error: {0}".format(e))
+else:
+    pymod_list.append(utils)
+
 
 # register the things we imported successfully with vistrails
 def get_modules():
