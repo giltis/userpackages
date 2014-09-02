@@ -116,7 +116,8 @@ class Listify(Module):
               signature="basic:Dictionary"),
         IPort(name="data_keys",
               label="The data key to turn in to a list",
-              signature="basic:String"),
+              signature="basic:String",
+              optional=True),
     ]
 
     _output_ports = [
@@ -128,17 +129,14 @@ class Listify(Module):
     def compute(self):
         # gather input
         header = None
-        if self.has_input("run_header"):
-            header = self.get_input("run_header")
-        if header is None:
-            logger.debug("listify cannot do anything without a header")
-            return
+        header = self.get_input("run_header")
 
         key = None
         if self.has_input("data_keys"):
             key = self.get_input("data_keys")
-
+        # print('key input: {0}'.format(key))
         data_dict = listify(data_keys=key, run_header=header)
+        # print('data_dict: {0}'.format(data_dict))
         # remove time from the dictionary
         time = data_dict.pop('time')
         # stringify the datetime object that gets returned
@@ -150,6 +148,9 @@ class Listify(Module):
         if len(data) == 1 and isinstance(data[0], list):
             data = data[0]
         # log the values set to the output ports at a debug level
+        # print('keys: {0}'.format(keys))
+        # print('data: {0}'.format(data))
+        # print('time: {0}'.format(time))
         logger.debug('data ', data)
         logger.debug('keys ', keys)
         logger.debug('time ', time)
