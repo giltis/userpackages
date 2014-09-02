@@ -51,103 +51,43 @@ def add_to_canvas(query_dict, unique_query_dict, single_result):
     # get the controller (will be needed to change the module names
     controller = api.get_current_controller()
 
-    mod_ids = []
-    conn_ids = []
-    # add the search dictionary to the canvas
-    mod_dict_search = api.add_module(-100, 0, 'org.vistrails.vistrails.basic',
-                                     'Dictionary', '')
-    api.change_parameter(mod_dict_search.id, 'value', [query_dict])
-    mod_ids.append(mod_dict_search.id)
-
-    # add the unique search dictionary to the canvas
-    mod_dict_unique = api.add_module(200, 0, 'org.vistrails.vistrails.basic',
-                                     'Dictionary', '')
-    api.change_parameter(mod_dict_unique.id, 'value', [unique_query_dict])
-    mod_ids.append(mod_dict_unique.id)
-
     # add the broker module to the canvas
     mod_broker = api.add_module(0, -100, 'org.vistrails.vistrails.NSLS2',
                                 'BrokerQuery', 'broker')
-    mod_ids.append(mod_broker.id)
 
-    # connect the search dict and unique search dict to the broker module
-    conn_ids.append(api.add_connection(mod_dict_search.id, 'value',
-                                       mod_broker.id, 'query_dict').id)
-    conn_ids.append(api.add_connection(mod_dict_unique.id, 'value',
-                                       mod_broker.id, 'unique_query_dict').id)
+    api.change_parameter(mod_broker.id, 'query_dict', [query_dict])
+    api.change_parameter(mod_broker.id, 'unique_query_dict',
+                         [unique_query_dict])
+    # refresh the canvas
+    controller.current_pipeline_scene.recreate_module(
+        controller.current_pipeline, mod_broker.id)
 
     # get the datakeys from the run header
     data_keys = get_data_keys(single_result)
     if 'time' in data_keys:
         data_keys.remove('time')
     horz_offset = 250
+    init_horz = -300
     vert_offset = -300
-    index = 0
-    for key in data_keys:
+    for index, (key) in enumerate(data_keys):
         # add the vistrails module for the listify key
-        mod_key = api.add_module(horz_offset * index, vert_offset+100,
-                                 'org.vistrails.vistrails.basic', 'String', '')
-        mod_ids.append(mod_key.id)
-        # set the parameter of the listify key module to be 'key'
-        api.change_parameter(mod_key.id, 'value', [key])
-        # change the module name
-        controller.add_annotation(('__desc__', key), mod_key.id)
-        controller.current_pipeline_scene.recreate_module(
-            controller.current_pipeline, mod_key.id)
         # add the vistrails module for the listify operation
-        mod_listify = api.add_module(horz_offset * index, vert_offset,
+        mod_listify = api.add_module(init_horz + horz_offset * index,
+                                     vert_offset,
                                      'org.vistrails.vistrails.NSLS2',
                                      'Listify', 'broker')
-        mod_ids.append(mod_listify.id)
-        # set the parameter of the listify to key
-
-        # connect the listify key to the listify module
-        conn_ids.append(api.add_connection(mod_key.id, 'value', mod_listify.id,
-                                           'data_keys').id)
+        # change the key parameter to be 'key'
+        api.change_parameter(mod_listify.id, 'data_keys', [key])
+        # change the module name to [key]
+        controller.add_annotation(('__desc__', key),
+                                  mod_listify.id)
+        # refresh the canvas
+        controller.current_pipeline_scene.recreate_module(
+            controller.current_pipeline, mod_listify.id)
 
         # connect the broker result to the listify module
-        conn_ids.append(api.add_connection(mod_broker.id, 'query_result',
-                                           mod_listify.id, 'run_header').id)
-        # if this is the first key, add the time list module
-        if index == 0:
-            mod_time = api.add_module(-200, vert_offset-100,
-                                      'org.vistrails.vistrails.basic', 'List',
-                                      '')
-            conn_ids.append(api.add_connection(mod_listify.id,
-                                               'listified_time', mod_time.id,
-                                               'value').id)
-            controller.add_annotation(('__desc__', 'time'), mod_time.id)
-            controller.current_pipeline_scene.recreate_module(
-                controller.current_pipeline, mod_time.id)
-
-        mod_data = api.add_module(horz_offset * index, vert_offset-100,
-                                  'org.vistrails.vistrails.basic', 'List', '')
-        conn_ids.append(api.add_connection(mod_listify.id, 'listified_data',
-                                           mod_data.id, 'value').id)
-        controller.add_annotation(('__desc__', (key+"_data")), mod_data.id)
-        controller.current_pipeline_scene.recreate_module(
-            controller.current_pipeline, mod_data.id)
-        index += 1
-
-    # annotate the modules
-    controller.add_annotation(('__desc__', 'search dictionary'),
-                              mod_dict_search.id)
-    controller.current_pipeline_scene.recreate_module(
-        controller.current_pipeline, mod_dict_search.id)
-
-    controller.add_annotation(('__desc__',
-                               'guaranteed unique search dictionary'),
-                              mod_dict_unique.id)
-    controller.current_pipeline_scene.recreate_module(
-        controller.current_pipeline, mod_dict_unique.id)
-    logger.debug("mod_ids: {0}".format(mod_ids))
-    logger.debug("conn_ids: {0}".format(conn_ids))
-    group = api.create_group(mod_ids, conn_ids)
-    logger.debug("group class: {0}".format(group.__class__))
-
-    controller.add_annotation(('__desc__', 'Broker Search Group'), group.id)
-    controller.current_pipeline_scene.recreate_module(
-        controller.current_pipeline, group.id)
+        api.add_connection(mod_broker.id, 'query_result',
+                           mod_listify.id, 'run_header')
 
 
 def gen_unique_id(run_header):
