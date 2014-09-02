@@ -38,12 +38,15 @@ import six
 from vistrails import api
 from logging import Handler
 from vistools.qt_widgets import query_widget
+from vistrails import api
+from vistrails.core.modules.vistrails_module import Module, ModuleSettings
+from vistrails.core.modules.config import IPort, OPort
 from .broker import search_keys_dict
 from .broker import search
+import numpy as np
 from metadataStore.analysisapi.utility import listify, get_data_keys
 import logging
 logger = logging.getLogger(__name__)
-from vistrails import api
 
 
 def add_to_canvas(query_dict, unique_query_dict, single_result):
@@ -62,6 +65,12 @@ def add_to_canvas(query_dict, unique_query_dict, single_result):
     controller.current_pipeline_scene.recreate_module(
         controller.current_pipeline, mod_broker.id)
 
+    # get the data dict from the data broker
+    mod_dict = api.add_module(0, -200, 'org.vistrails.vistrails.NSLS2',
+                              'CalibrationParameters', 'broker')
+    # connect the broker to the dict
+    api.add_connection(mod_broker.id, 'query_result', mod_dict.id, 'run_header')
+
     # get the datakeys from the run header
     data_keys = get_data_keys(single_result)
     if 'time' in data_keys:
@@ -69,6 +78,7 @@ def add_to_canvas(query_dict, unique_query_dict, single_result):
     horz_offset = 250
     init_horz = -300
     vert_offset = -300
+
     for index, (key) in enumerate(data_keys):
         # add the vistrails module for the listify key
         # add the vistrails module for the listify operation
@@ -178,3 +188,28 @@ class ForwardingHandler(Handler):
 
     def emit(self, record):
         self._other_logger.handle(record)
+
+
+class Flatten(Module):
+    _settings = ModuleSettings(namespace="utility")
+
+    _input_ports = [
+        IPort(name="list_of_lists",
+              label="List of lists to flatten",
+              signature="basic:List"),
+    ]
+
+    _output_ports = [
+        OPort(name="flattened", signature="basic:List"),
+    ]
+
+    def compute(self):
+        # gather input
+        lists = self.get_input('list_of_lists')
+        raveled = [np.ravel(im) for im in lists]
+        flattened = [item for sublist in raveled for item in sublist]
+        self.set_output('flattened', flattened)
+
+
+def vistrails_modules():
+    return [Flatten]
