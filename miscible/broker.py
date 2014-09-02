@@ -58,7 +58,7 @@ except ImportError:
     search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
 
 try:
-    from metadataStore.analysisapi.utility import listify
+    from metadataStore.analysisapi.utility import listify, get_calib_dict
 except ImportError:
     def listify(*args, **kwargs):
         err_msg = ("listify from metadataStore.analysis.utility is not "
@@ -80,7 +80,7 @@ class BrokerQuery(Module):
     ]
 
     _output_ports = [
-        OPort(name="query_result", signature="basic:Dictionary")
+        OPort(name="query_result", signature="basic:Dictionary"),
     ]
 
     def compute(self):
@@ -107,6 +107,25 @@ class BrokerQuery(Module):
         logger.debug("result: {0}".format(list(result)))
 
 
+class CalibrationParameters(Module):
+    _settings = ModuleSettings(namespace="broker")
+    _input_ports = [
+        IPort(name="run_header",
+              label="Run header from the data broker",
+              signature="basic:Dictionary"),
+    ]
+    _output_ports = [
+        OPort(name='calib_dict', signature='basic:Dictionary'),
+        OPort(name='nested', signature='basic:Boolean'),
+    ]
+
+    def compute(self):
+        header = self.get_input('run_header')
+        calib_dict, nested = get_calib_dict(header)
+        self.set_output('calib_dict', calib_dict)
+        self.set_output('nested', nested)
+
+
 class Listify(Module):
     _settings = ModuleSettings(namespace="broker")
 
@@ -128,7 +147,6 @@ class Listify(Module):
 
     def compute(self):
         # gather input
-        header = None
         header = self.get_input("run_header")
 
         key = None
@@ -161,4 +179,4 @@ class Listify(Module):
 
 
 def vistrails_modules():
-    return [BrokerQuery, Listify]
+    return [BrokerQuery, Listify, CalibrationParameters]
