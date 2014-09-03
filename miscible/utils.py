@@ -211,5 +211,29 @@ class Flatten(Module):
         self.set_output('flattened', flattened)
 
 
+class Average(Module):
+    _settings = ModuleSettings(namespace="utility")
+
+    _input_ports = [
+        IPort(name="input",
+              label="Iterable to compute the average of",
+              signature="basic:Variant"),
+    ]
+
+    _output_ports = [
+        OPort(name="avg", signature="basic:Float"),
+        OPort(name="avg_str", signature="basic:String"),
+    ]
+
+    def compute(self):
+        # gather input
+        input = self.get_input('input')
+        # np.average(input)
+        avg = np.average(input)
+
+        self.set_output('avg',  avg)
+        self.set_output('avg_str',  str(avg))
+
+
 def vistrails_modules():
-    return [Flatten]
+    return [Flatten, Average]
