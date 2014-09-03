@@ -37,7 +37,7 @@ from __future__ import (absolute_import, division, print_function,
 import six
 from vistrails import api
 from logging import Handler
-from vistools.qt_widgets import query_widget
+from bubblegum.qt_widgets import query_widget
 from vistrails import api
 from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
