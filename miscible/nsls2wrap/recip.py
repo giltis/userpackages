@@ -187,15 +187,33 @@ class Grid(Module):
               signature='basic:List'),
         IPort(name='i_stack', label='N x 1 array of pixel intensities',
               signature='basic:List'),
-        IPort(name='q_min',
-              label='Minimum voxel value: tuple or list of (x, y, z)',
-              signature='basic:List', optional=True),
-        IPort(name='q_max',
-              label='Maximum voxel value: tuple or list of (x, y, z)',
-              signature='basic:List', optional=True),
-        IPort(name='dqn',
-              label='Voxel step size: tuple or list of (x, y, z)',
-              signature='basic:List', optional=True)
+        IPort(name='nx',
+              label='x voxel step size',
+              signature='basic:Integer', optional=True),
+        IPort(name='ny',
+              label='y voxel step size',
+              signature='basic:Integer', optional=True),
+        IPort(name='nz',
+              label='z voxel step size',
+              signature='basic:Integer', optional=True),
+        IPort(name='xmin',
+              label='minimum value in x',
+              signature='basic:Float', optional=True),
+        IPort(name='ymin',
+              label='minimum value in y',
+              signature='basic:Float', optional=True),
+        IPort(name='zmin',
+              label='minimum value in z',
+              signature='basic:Float', optional=True),
+        IPort(name='xmax',
+              label='maximum value in x',
+              signature='basic:Float', optional=True),
+        IPort(name='ymax',
+              label='maximum value in y',
+              signature='basic:Float', optional=True),
+        IPort(name='zmax',
+              label='maximum value in z',
+              signature='basic:Float', optional=True)
     ]
 
     _output_ports = [
@@ -207,19 +225,49 @@ class Grid(Module):
 
     def compute(self):
         mandatory = ['tot_set', 'i_stack']
-        optional = ['q_min', 'q_max', 'dqn']
+        optional = ['nx', 'ny', 'nz', 'xmin', 'ymin', 'zmin', 'xmax',
+                    'ymax', 'zmax']
         input_dict = {}
         # gather mandatory input
-        input_dict = {m: self.get_input(m) for m in mandatory}
+        print('Grid line 213')
+        i_stack = self.get_input('i_stack')
+        print('Grid line 215')
+        tot_set = self.get_input('tot_set')
+        # input_dict = {m: self.get_input(m) for m in mandatory}
+        print('len(tot_set), tot_set.__class__: {0}, {1}'.
+              format(len(tot_set), tot_set.__class__))
+        print('len(tot_set[0], tot_set[0].__class__: {0}, {1}'.
+              format(len(tot_set[0]), tot_set[0].__class__))
+        print('len(tot_set[0][0], tot_set[0][0].__class__: {0}, {1}'.
+              format(len(tot_set[0][0]), tot_set[0][0].__class__))
+        # tot_set = np.asarray(tot_set)
+        # print('tot_set.shape, tot_set.__class__: {0}, {1}'.
+        #       format(tot_set.shape, tot_set.__class__))
+        # print('Grid line 220')
+        lst = tot_set
+        stride = len(lst[0])
+        out_arr = np.zeros((stride * len(lst), 3))
+        for idx, (arr) in enumerate(lst):
+            start = idx * stride
+            stop = (idx + 1) * stride
+            out_arr[start:stop] = arr
+        print('Grid line 235')
+        tot_set = out_arr
+        print('tot_set.shape, tot_set.__class__: {0}, {1}'.
+              format(tot_set.shape, tot_set.__class__))
+        if isinstance(i_stack, list):
+            i_stack = np.asarray(i_stack)
 
         for o in optional:
             try:
+                print('Grid line 217')
                 input_dict[o] = self.get_input(o)
             except ModuleError:
+                print('Grid line 219')
                 # will be thrown if there is no input on this port
                 logger.debug("No input on port: {0}".format(o))
-
-        mean, std_err, occu, oob = process_grid(**input_dict)
+        print('Grid line 221')
+        mean, std_err, occu, oob = process_grid(tot_set, i_stack, **input_dict)
 
         self.set_output('mean', mean)
         self.set_output('std_err', std_err)
