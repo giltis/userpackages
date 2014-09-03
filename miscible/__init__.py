@@ -44,7 +44,7 @@ def package_dependencies():
     import vistrails.core.packagemanager
     manager = vistrails.core.packagemanager.get_package_manager()
     desired_deps = ['org.vistrails.vistrails.spreadsheet',
-                    'org.vistrials.vistrails.matplotlib']
+                    'org.vistrails.vistrails.matplotlib']
     deps = []
     for dep in desired_deps:
         if manager.has_package(dep):
