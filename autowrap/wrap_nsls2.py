@@ -40,6 +40,7 @@ from numpydoc.docscrape import FunctionDoc, ClassDoc, NumpyDocString
 import inspect
 import importlib
 import os
+import pprint
 
 
 def obj_src(py_obj, escape_docstring=True):
@@ -69,19 +70,23 @@ def obj_src(py_obj, escape_docstring=True):
     return src.split('\n')
 
 
-def func_docstring(function):
+def docstring(pyobj):
     """Get the docstring dictionary of a function
 
     Parameters
     ----------
-    function : function reference
-        The function for which you desire the nicely parsed documentation
+    pyobj : function name or class name
+        Any object in Python for which you want the docstring
 
     Returns
     -------
-    dict
-        A dictionary of the formatted numpy docstring.
-        https://github.com/numpy/numpydoc/blob/master/numpydoc/docscrape.py#L94
+    FunctionDoc
+        If pyobj is a function or class method
+    ClassDoc
+        If pyobj is a class
+
+    In either case, a dictionary of the formatted numpy docstring can be
+        accessed by :code:`return_val._parsed_data`
         Keys:
             'Signature': '',
             'Summary': [''],
@@ -99,12 +104,19 @@ def func_docstring(function):
             'References': '',
             'Examples': '',
             'index': {}
+    Taken from:
+        https://github.com/numpy/numpydoc/blob/master/numpydoc/docscrape.py#L94
     """
-    return NumpyDocString(str(FunctionDoc(function)))._parsed_data
-
-
-def autowrap(pyobj):
-    pass
+    if inspect.isfunction(pyobj) or inspect.ismethod(pyobj):
+        return FunctionDoc(pyobj)
+    elif inspect.isclass(pyobj):
+        return ClassDoc(pyobj)
+    else:
+        raise ValueError("The pyobj input parameter is not a function or a "
+                         "class.  A function would return 'function' from "
+                         "type(pyobj) and a class would return 'type' from "
+                         "type(pyobj).  Your parameter returned {0} from "
+                         "type(pyobj)".format(type(pyobj)))
 
 
 def do_wrap(output_path, import_list):
@@ -113,7 +125,8 @@ def do_wrap(output_path, import_list):
         print('func_name, mod_name: {0}, {1}'.format(func_name, mod_name))
         mod = importlib.import_module(mod_name)
         func = getattr(mod, func_name)
-        doc = func_docstring(func)
+        doc = docstring(func)
+        pprint.pprint(doc._parsed_data)
         src = obj_src(func)
 
 
