@@ -48,6 +48,121 @@ from nsls2.core import grid3d
 
 
 class Grid(Module):
+    """
+    def grid3d(q, img_stack,
+           nx=None, ny=None, nz=None,
+           xmin=None, xmax=None, ymin=None,
+           ymax=None, zmin=None, zmax=None):
+    \"""Grid irregularly spaced data points onto a regular grid via histogramming
+
+
+    This function will process the set of reciprocal space values (q), the
+    image stack (img_stack) and grid the image data based on the bounds
+    provided, using defaults if none are provided.
+
+    Parameters
+    ----------
+    q : ndarray
+        (Qx, Qy, Qz) - HKL values - Nx3 array
+    img_stack : ndarray
+        Intensity array of the images
+        dimensions are: [num_img][num_rows][num_cols]
+    nx : int, optional
+        Number of voxels along x
+    ny : int, optional
+        Number of voxels along y
+    nz : int, optional
+        Number of voxels along z
+    xmin : float, optional
+        Minimum value along x. Defaults to smallest x value in q
+    ymin : float, optional
+        Minimum value along y. Defaults to smallest y value in q
+    zmin : float, optional
+        Minimum value along z. Defaults to smallest z value in q
+    xmax : float, optional
+        Maximum value along x. Defaults to largest x value in q
+    ymax : float, optional
+        Maximum value along y. Defaults to largest y value in q
+    zmax : float, optional
+        Maximum value along z. Defaults to largest z value in q
+
+    Returns
+    -------
+    mean : ndarray
+        intensity grid.  The values in this grid are the
+        mean of the values that fill with in the grid.
+    occupancy : ndarray
+        The number of data points that fell in the grid.
+    std_err : ndarray
+        This is the standard error of the value in the
+        grid box.
+    oob : int
+        Out Of Bounds. Number of data points that are outside of
+        the gridded region.
+    bounds : list
+        tuple of (min, max, step) for x, y, z in order: [x_bounds,
+        y_bounds, z_bounds]
+
+    \"""
+
+    q = np.atleast_2d(q)
+    q.shape
+    if q.ndim != 2:
+        raise ValueError("q.ndim must be a 2-D array of shape Nx3 array. "
+                         "You provided an array with {0} dimensions."
+                         "".format(q.ndim))
+    if q.shape[1] != 3:
+        raise ValueError("The shape of q must be an Nx3 array, not {0}X{1}"
+                         " which you provided.".format(*q.shape))
+
+    # set defaults for qmin, qmax, dq
+    qmin = np.min(q, axis=0)
+    qmax = np.max(q, axis=0)
+    dqn = [_defaults['nx'], _defaults['ny'], _defaults['nz']]
+
+    # pad the upper edge by just enough to ensure that all of the
+    # points are in-bounds with the binning rules: lo <= val < hi
+    qmax += np.spacing(qmax)
+
+    # check for non-default input
+    for target, input_vals in ((dqn, (nx, ny, nz)),
+                               (qmin, (xmin, ymin, zmin)),
+                               (qmax, (xmax, ymax, zmax))):
+        for j, in_val in enumerate(input_vals):
+            if in_val is not None:
+                target[j] = in_val
+
+    # format bounds
+    bounds = np.array([qmin, qmax, dqn]).T
+
+    # creating (Qx, Qy, Qz, I) Nx4 array - HKL values and Intensity
+    # getting the intensity value for each pixel
+    q = np.insert(q, 3, np.ravel(img_stack), axis=1)
+
+    #            3D grid of the data set
+    # starting time for gridding
+    t1 = time.time()
+
+    # call the c library
+    mean, occupancy, std_err, oob = ctrans.grid3d(q, qmin, qmax, dqn, norm=1)
+
+    # ending time for the gridding
+    t2 = time.time()
+    logger.info("Done processed in {0} seconds".format(t2-t1))
+
+    # No. of values zero in the grid
+    empt_nb = (occupancy == 0).sum()
+
+    # log some information about the grid at the debug level
+    if oob:
+        logger.debug("There are %.2e points outside the grid {0}".format(oob))
+    logger.debug("There are %2e bins in the grid {0}".format(mean.size))
+    if empt_nb:
+        logger.debug("There are %.2e values zero in the grid {0}"
+                     "".format(empt_nb))
+
+    return mean, occupancy, std_err, oob, bounds
+    """
     _settings = ModuleSettings(namespace="nsls2|core")
 
     _input_ports = [
