@@ -49,21 +49,30 @@ try:
     from metadataStore.userapi.commands import search
 except ImportError:
     def search(*args, **kwargs):
-        err_msg = "NSLS2 data broker is not importable. Search cannot proceed"
-        print("userpackages/NSLS2/broker.py: {0}".format(err_msg))
+        err_msg = ("search from metadataStore.userapi.commands is not "
+                   "importable. Search cannot proceed")
         logger.warning(err_msg)
 try:
     from metadataStore.userapi.commands import search_keys_dict
 except ImportError:
     search_keys_dict = {"search_keys_dict": "Import Unsuccessful"}
 
+try:
+    from metadataStore.analysisapi.utility import listify, get_calib_dict
+except ImportError:
+    def listify(*args, **kwargs):
+        err_msg = ("listify from metadataStore.analysis.utility is not "
+                   "importable. run_header cannot be listified")
+        logger.warning(err_msg)
+
 
 class BrokerQuery(Module):
-    _settings = ModuleSettings(namespace="NSLS2|io",
-                               configure_widget=
-                               "vis:NestedDictConfigurationWidget")
+    _settings = ModuleSettings(namespace="broker")
 
     _input_ports = [
+        IPort(name="unique_query_dict",
+              label="guaranteed unique query for the data broker",
+              signature="basic:Dictionary"),
         IPort(name="query_dict", label="Query for the data broker",
               signature="basic:Dictionary"),
         IPort(name="is_returning_data", label="Return data with search results",
@@ -71,16 +80,103 @@ class BrokerQuery(Module):
     ]
 
     _output_ports = [
-        OPort(name="query_result", signature="basic:List")
+        OPort(name="query_result", signature="basic:Dictionary"),
     ]
 
     def compute(self):
-        query = self.get_input("query_dict")
+        query = None
+        if self.has_input("query_dict"):
+            query = self.get_input("query_dict")
+            return_only_one = False
+        if self.has_input("unique_query_dict"):
+            query = self.get_input("unique_query_dict")
+            return_only_one = True
+
+        if query is None:
+            logger.debug("no search dictionary was passed in, search "
+                         "cannot proceed")
+            return
+        logger.debug("broker_query: {0}".format(query))
         data = self.get_input("is_returning_data")
         query["data"] = data
         result = search(**query)
+        if return_only_one:
+            keys = list(result)
+            result = result[keys[0]]
         self.set_output("query_result", result)
+        logger.debug("result: {0}".format(list(result)))
+
+
+class CalibrationParameters(Module):
+    _settings = ModuleSettings(namespace="broker")
+    _input_ports = [
+        IPort(name="run_header",
+              label="Run header from the data broker",
+              signature="basic:Dictionary"),
+    ]
+    _output_ports = [
+        OPort(name='calib_dict', signature='basic:Dictionary'),
+        OPort(name='nested', signature='basic:Boolean'),
+    ]
+
+    def compute(self):
+        header = self.get_input('run_header')
+        calib_dict, nested = get_calib_dict(header)
+        self.set_output('calib_dict', calib_dict)
+        self.set_output('nested', nested)
+
+
+class Listify(Module):
+    _settings = ModuleSettings(namespace="broker")
+
+    _input_ports = [
+        IPort(name="run_header",
+              label="Run header from the data broker",
+              signature="basic:Dictionary"),
+        IPort(name="data_keys",
+              label="The data key to turn in to a list",
+              signature="basic:String",
+              optional=True),
+    ]
+
+    _output_ports = [
+        OPort(name="listified_data", signature="basic:List"),
+        OPort(name="data_keys", signature="basic:List"),
+        OPort(name="listified_time", signature="basic:List"),
+    ]
+
+    def compute(self):
+        # gather input
+        header = self.get_input("run_header")
+
+        key = None
+        if self.has_input("data_keys"):
+            key = self.get_input("data_keys")
+        # print('key input: {0}'.format(key))
+        data_dict = listify(data_keys=key, run_header=header)
+        # print('data_dict: {0}'.format(data_dict))
+        # remove time from the dictionary
+        time = data_dict.pop('time')
+        # stringify the datetime object that gets returned
+        time = [t.isoformat() for t in time]
+        # get the remaining keys
+        keys = list(data_dict)
+        data = [data_dict[key] for key in keys]
+        # check to see if data is a list of lists
+        if len(data) == 1 and isinstance(data[0], list):
+            data = data[0]
+        # log the values set to the output ports at a debug level
+        # print('keys: {0}'.format(keys))
+        # print('data: {0}'.format(data))
+        # print('time: {0}'.format(time))
+        logger.debug('data ', data)
+        logger.debug('keys ', keys)
+        logger.debug('time ', time)
+        # set the module's output
+        self.set_output("data_keys", keys)
+        self.set_output("listified_data", data)
+        self.set_output("listified_time", time)
 
 
 def vistrails_modules():
-    return [BrokerQuery]
+    return [BrokerQuery, Listify, CalibrationParameters]
