@@ -64,6 +64,7 @@ def obj_src(py_obj, escape_docstring=True):
     """
     src = inspect.getsource(py_obj)
     if escape_docstring:
+        src.replace("'''", "\\'''")
         src.replace('"""', '\\"""')
     return src.split('\n')
 
