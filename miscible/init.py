@@ -49,24 +49,43 @@ pymod_list = []
 # local packages to import
 try:
     from . import vis
-except:
-    print("importing vis failed")
+except ImportError as e:
+    print("importing vis failed"
+          "\nOriginal Error: {0}".format(e))
 else:
     pymod_list.append(vis)
 
 try:
     from . import broker
-except:
-    print("importing broker failed")
+except ImportError as e:
+    print("importing broker failed"
+          "\nOriginal Error: {0}".format(e))
 else:
     pymod_list.append(broker)
 
 try:
     from . import io
-except:
-    print("importing io failed")
+except ImportError as e:
+    print("importing io failed."
+          "\nOriginal Error: {0}".format(e))
 else:
     pymod_list.append(io)
+
+try:
+    from . import nsls2wrap
+except ImportError as e:
+    print("importing nsls2wrap failed."
+          "\nOriginal Error: {0}".format(e))
+else:
+    pymod_list.append(nsls2wrap)
+
+try:
+    from . import utils
+except ImportError as e:
+    print("importing utils failed."
+          "\nOriginal Error: {0}".format(e))
+else:
+    pymod_list.append(utils)
 
 
 # register the things we imported successfully with vistrails
