@@ -42,9 +42,12 @@ import importlib
 import os
 import pprint
 import time
+import sys
 from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
                                                      ModuleError)
 from vistrails.core.modules.config import IPort, OPort
+import logging
+logger = logging.getLogger(__name__)
 
 
 def obj_src(py_obj, escape_docstring=True):
@@ -164,7 +167,7 @@ sig_map = {
     'basic:List': ['list'],
     'basic:Integer': ['int'],
     'basic:Float': ['float'],
-
+    'basic:Tuple': ['tuple'],
 }
 
 
@@ -214,12 +217,12 @@ def define_input_ports(docstring):
                 the_type = the_type[0]
             elif len(the_type) == 2 and the_type[1].strip().lower() == 'optional':
                 # optional = the_type[1].strip()
-                # print('after stripping: [{0}]'.format(optional))
+                # logger.debug('after stripping: [{0}]'.format(optional))
                 # if the_type[1].strip().lower() is 'optional':
                 optional = True
                 the_type = the_type[0]
             elif len(the_type) is not 1:
-                # print('the_type[1][0:1]: {0}'.format(the_type[1][0:1]))
+                # logger.debug('the_type[1][0:1]: {0}'.format(the_type[1][0:1]))
                 raise ValueError("There are two fields for the type in the"
                                  " numpy doc string, but I don't "
                                  "understand what the second variable "
@@ -227,9 +230,10 @@ def define_input_ports(docstring):
                                  "optional'. Anything else is incorrect. "
                                  "You passed in: {0}".format(the_type))
 
-            print("the_name is {0}. \n\tthe_type is {1} and it is optional: "
-                  "{3}. \n\tthe_description is {2}"
-                  "".format(the_name, the_type, the_description, optional))
+            logger.debug("the_name is {0}. \n\tthe_type is {1} and it is "
+                         "optional: {3}. \n\tthe_description is {2}"
+                         "".format(the_name, the_type, the_description,
+                                   optional))
 
             input_ports.append(IPort(name=the_name, label=the_description,
                                      signature=get_signature(the_type),
@@ -261,9 +265,16 @@ def define_output_ports(docstring):
     output_ports = []
     if 'Parameters' in docstring:
         for (the_name, the_type, the_description) in docstring['Returns']:
-            print("the_name is {0}. \n\tthe_type is {1}. "
-                  "\n\tthe_description is {2}"
-                  "".format(the_name, the_type, the_description))
+            logger.debug("the_name is {0}. \n\tthe_type is {1}. "
+                         "\n\tthe_description is {2}"
+                         "".format(the_name, the_type, the_description))
+            try:
+                signature = get_signature(the_type)
+            except ValueError as ve:
+                logger.error('ValueError raised for Returns parameter with '
+                             'name: {0}\n\ttype: {1}\n\tdescription: {2}'
+                             ''.format(the_name, the_type, the_description))
+                raise ValueError(ve)
 
             output_ports.append(OPort(name=the_name,
                                       signature=get_signature(the_type)))
@@ -286,39 +297,56 @@ def do_wrap(output_path, import_list):
         # func_name, mod_name = imp
         mod = importlib.import_module(mod_name)
         func = getattr(mod, func_name)
-        doc = docstring_func(func)
+        try:
+            doc = docstring_func(func)
+        except ValueError as ve:
+            logger.debug("ValueError raised when attempting to get docstring "
+                         "for function {0}".format(func))
+            raise ValueError(ve)
         input_ports = define_input_ports(doc._parsed_data)
-        output_ports = define_output_ports(doc._parsed_data)
+        try:
+            output_ports = define_output_ports(doc._parsed_data)
+        except ValueError as ve:
+            logger.error('ValueError raised in attempt to format output_ports'
+                         ' in function: {0} in module: {1}'
+                         ''.format(func_name, mod_name))
+            raise ValueError(ve)
         pprint.pprint(input_ports)
         pprint.pprint(output_ports)
         # pprint.pprint(doc._parsed_data)
         src = obj_src(func)
-        print('func_name {0}, module_name {1}. Time: {2}'
-              ''.format(func_name, mod_name, format(time.time() - t1)))
+        logger.debug('func_name {0}, module_name {1}. Time: {2}'
+                     ''.format(func_name, mod_name, format(time.time() - t1)))
 
 
 if __name__ == "__main__":
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.DEBUG)
+    logger.addHandler(ch)
     # perform the automagic wrapping
     output_path = os.path.expanduser('~/.vistrails/userpackages/')
-    import_list = [
+    import_list_funcs = [
         ('grid3d', 'nsls2.core'),
-        # ('process_to_q', 'nsls2.recip'),
-        # ('Element', 'nsls2.constants'),
-        # ('emission_line_search', 'nsls2.constants'),
-        # ('snip_method', 'nsls2.fitting.model.background'),
-        # ('gauss_peak', 'nsls2.fitting.model.physics_peak'),
-        # ('gauss_step', 'nsls2.fitting.model.physics_peak'),
-        # ('gauss_tail', 'nsls2.fitting.model.physics_peak'),
-        # ('elastic_peak', 'nsls2.fitting.model.physics_peak'),
-        # ('compton_peak', 'nsls2.fitting.model.physics_peak'),
-        # ('read_binary', 'nsls2.io.binary'),
-        # ('fit_quad_to_peak', 'nsls2.spectroscopy'),
-        # ('align_and_scale', 'nsls2.spectroscopy'),
-        # ('find_largest_peak', 'nsls2.spectroscopy'),
-        # ('integrate_ROI_spectrum', 'nsls2.spectroscopy'),
-        # ('integrate_ROI', 'nsls2.spectroscopy'),
+        ('process_to_q', 'nsls2.recip'),
+        ('emission_line_search', 'nsls2.constants'),
+        ('snip_method', 'nsls2.fitting.model.background'),
+        ('gauss_peak', 'nsls2.fitting.model.physics_peak'),
+        ('gauss_step', 'nsls2.fitting.model.physics_peak'),
+        ('gauss_tail', 'nsls2.fitting.model.physics_peak'),
+        ('elastic_peak', 'nsls2.fitting.model.physics_peak'),
+        ('compton_peak', 'nsls2.fitting.model.physics_peak'),
+        ('read_binary', 'nsls2.io.binary'),
+        ('fit_quad_to_peak', 'nsls2.spectroscopy'),
+        ('align_and_scale', 'nsls2.spectroscopy'),
+        ('find_largest_peak', 'nsls2.spectroscopy'),
+        ('integrate_ROI_spectrum', 'nsls2.spectroscopy'),
+        ('integrate_ROI', 'nsls2.spectroscopy'),
     ]
-    do_wrap(output_path, import_list)
+    do_wrap(output_path, import_list_funcs)
+
+    import_list_classes = [
+        ('Element', 'nsls2.constants')
+    ]
 
 """
 Runtime generation of classes:
