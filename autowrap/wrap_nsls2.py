@@ -46,6 +46,7 @@ import sys
 from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
                                                      ModuleError)
 from vistrails.core.modules.config import IPort, OPort
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
@@ -163,13 +164,21 @@ def docstring_func(pyobj):
                          "type(pyobj)".format(type(pyobj)))
 
 sig_map = {
-    'basic:Variant': ['ndarray'],
+    'basic:Variant': ['ndarray', 'array'],
     'basic:List': ['list'],
-    'basic:Integer': ['int'],
+    'basic:Integer': ['int', 'integer'],
     'basic:Float': ['float'],
     'basic:Tuple': ['tuple'],
+    'basic:Dict': ['dict'],
+    'basic:Bool': ['bool'],
+    'basic:String': ['str', 'string'],
 }
 
+enum_map = {
+    'numpy.dtype': [np.intc, np.intp, np.int8, np.int16, np.int32, np.int64,
+                    np.uint8, np.uint16, np.uint64, np.float16, np.float32,
+                    np.float64, np.complex64, np.complex128],
+}
 
 def get_signature(arg_type):
     """Transform 'arg_type' into a vistrails port signature
@@ -215,7 +224,8 @@ def define_input_ports(docstring):
             the_type = the_type.split(',')
             if len(the_type) == 1:
                 the_type = the_type[0]
-            elif len(the_type) == 2 and the_type[1].strip().lower() == 'optional':
+            elif (len(the_type) == 2 and
+                          the_type[1].strip().lower() == 'optional'):
                 # optional = the_type[1].strip()
                 # logger.debug('after stripping: [{0}]'.format(optional))
                 # if the_type[1].strip().lower() is 'optional':
@@ -303,7 +313,13 @@ def do_wrap(output_path, import_list):
             logger.debug("ValueError raised when attempting to get docstring "
                          "for function {0}".format(func))
             raise ValueError(ve)
-        input_ports = define_input_ports(doc._parsed_data)
+        try:
+            input_ports = define_input_ports(doc._parsed_data)
+        except ValueError as ve:
+            logger.error('ValueError raised in attempt to format input_ports'
+                         ' in function: {0} in module: {1}'
+                         ''.format(func_name, mod_name))
+            raise ValueError(ve)
         try:
             output_ports = define_output_ports(doc._parsed_data)
         except ValueError as ve:
