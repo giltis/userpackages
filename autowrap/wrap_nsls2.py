@@ -41,6 +41,10 @@ import inspect
 import importlib
 import os
 import pprint
+import time
+from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
+                                                     ModuleError)
+from vistrails.core.modules.config import IPort, OPort
 
 
 def obj_src(py_obj, escape_docstring=True):
@@ -70,8 +74,8 @@ def obj_src(py_obj, escape_docstring=True):
     return src.split('\n')
 
 
-def docstring(pyobj):
-    """Get the docstring dictionary of a function
+def docstring_class(pyobj):
+    """Get the docstring dictionary of a class
 
     Parameters
     ----------
@@ -80,12 +84,53 @@ def docstring(pyobj):
 
     Returns
     -------
-    FunctionDoc
-        If pyobj is a function or class method
     ClassDoc
         If pyobj is a class
 
-    In either case, a dictionary of the formatted numpy docstring can be
+    A dictionary of the formatted numpy docstring can be
+        accessed by :code:`return_val._parsed_data`
+        Keys:
+            'Signature': '',
+            'Summary': [''],
+            'Extended Summary': [],
+            'Parameters': [],
+            'Returns': [],
+            'Raises': [],
+            'Warns': [],
+            'Other Parameters': [],
+            'Attributes': [],
+            'Methods': [],
+            'See Also': [],
+            'Notes': [],
+            'Warnings': [],
+            'References': '',
+            'Examples': '',
+            'index': {}
+    Taken from:
+        https://github.com/numpy/numpydoc/blob/master/numpydoc/docscrape.py#L94
+    """
+    if inspect.isclass(pyobj):
+        return ClassDoc(pyobj)
+    else:
+        raise ValueError("The pyobj input parameter is not a class."
+                         "Your parameter returned {0} from "
+                         "type(pyobj)".format(type(pyobj)))
+
+
+def docstring_func(pyobj):
+    """Get the docstring dictionary of a function
+
+    Parameters
+    ----------
+    pyobj : function name
+        Any object in Python for which you want the docstring
+
+    Returns
+    -------
+    FunctionDoc
+        If pyobj is a function or class method
+
+    A dictionary of the formatted numpy docstring can be
         accessed by :code:`return_val._parsed_data`
         Keys:
             'Signature': '',
@@ -109,25 +154,147 @@ def docstring(pyobj):
     """
     if inspect.isfunction(pyobj) or inspect.ismethod(pyobj):
         return FunctionDoc(pyobj)
-    elif inspect.isclass(pyobj):
-        return ClassDoc(pyobj)
     else:
-        raise ValueError("The pyobj input parameter is not a function or a "
-                         "class.  A function would return 'function' from "
-                         "type(pyobj) and a class would return 'type' from "
-                         "type(pyobj).  Your parameter returned {0} from "
+        raise ValueError("The pyobj input parameter is not a function."
+                         "Your parameter returned {0} from "
                          "type(pyobj)".format(type(pyobj)))
+
+sig_map = {
+    'basic:Variant': ['ndarray'],
+    'basic:List': ['list'],
+    'basic:Integer': ['int'],
+    'basic:Float': ['float'],
+
+}
+
+
+def get_signature(arg_type):
+    """Transform 'arg_type' into a vistrails port signature
+
+    Parameters
+    ----------
+    arg_type : type
+        The type of the parameter from the library function to be wrapped
+
+    Returns
+    -------
+    port_sig : str
+        The VisTrails port signature
+    """
+    for port_sig, pytypes in six.iteritems(sig_map):
+        if arg_type in pytypes:
+            return port_sig
+
+    # if no arg_type matches the pytypes that relate to VisTrails port sigs
+    # raise a value error
+    raise ValueError("The arg_type doesn't match any of the options.  Your "
+                     "arg_type is: {0}.  See the sig_type dictionary in "
+                     "userpackages/autowrap/wrap_nsls2.py".format(arg_type))
+
+
+def define_input_ports(docstring):
+    """Turn the 'Parameters' fields into VisTrails input ports
+
+    Parameters
+    ----------
+    docstring : NumpyDocString
+        The scraped docstring from the
+
+    Returns
+    -------
+    input_ports : list
+        List of input_ports (Vistrails type IPort)
+    """
+    input_ports = []
+    if 'Parameters' in docstring:
+        for (the_name, the_type, the_description) in docstring['Parameters']:
+            optional = False
+            the_type = the_type.split(',')
+            if len(the_type) == 1:
+                the_type = the_type[0]
+            elif len(the_type) == 2 and the_type[1].strip().lower() == 'optional':
+                # optional = the_type[1].strip()
+                # print('after stripping: [{0}]'.format(optional))
+                # if the_type[1].strip().lower() is 'optional':
+                optional = True
+                the_type = the_type[0]
+            elif len(the_type) is not 1:
+                # print('the_type[1][0:1]: {0}'.format(the_type[1][0:1]))
+                raise ValueError("There are two fields for the type in the"
+                                 " numpy doc string, but I don't "
+                                 "understand what the second variable "
+                                 "is. Expected either 'type' or 'type, "
+                                 "optional'. Anything else is incorrect. "
+                                 "You passed in: {0}".format(the_type))
+
+            print("the_name is {0}. \n\tthe_type is {1} and it is optional: "
+                  "{3}. \n\tthe_description is {2}"
+                  "".format(the_name, the_type, the_description, optional))
+
+            input_ports.append(IPort(name=the_name, label=the_description,
+                                     signature=get_signature(the_type),
+                                     optional=optional))
+
+    else:
+        # raised if 'Parameters' is not in the docstring
+        raise KeyError('Docstring is not formatted correctly. There is no '
+                       '"Parameters" field. Your docstring: {0}'
+                       ''.format(docstring))
+
+    return input_ports
+
+
+def define_output_ports(docstring):
+    """Turn the 'Returns' fields into VisTrails output ports
+
+    Parameters
+    ----------
+    docstring : NumpyDocString
+        The scraped docstring from the
+
+    Returns
+    -------
+    input_ports : list
+        List of input_ports (Vistrails type IPort)
+    """
+
+    output_ports = []
+    if 'Parameters' in docstring:
+        for (the_name, the_type, the_description) in docstring['Returns']:
+            print("the_name is {0}. \n\tthe_type is {1}. "
+                  "\n\tthe_description is {2}"
+                  "".format(the_name, the_type, the_description))
+
+            output_ports.append(OPort(name=the_name,
+                                      signature=get_signature(the_type)))
+    else:
+        # raised if 'Returns' is not in the docstring.
+        # This should probably just create an empty list if there is no
+        # Returns field in the docstring. Though if there is no returns field,
+        # why would we be wrapping the module automatically... what to do...
+        # What. To. Do.?
+        raise KeyError('Docstring is not formatted correctly. There is no '
+                       '"Returns" field. Your docstring: {0}'
+                       ''.format(docstring))
+
+    return output_ports
 
 
 def do_wrap(output_path, import_list):
     for (func_name, mod_name) in import_list:
+        t1 = time.time()
         # func_name, mod_name = imp
-        print('func_name, mod_name: {0}, {1}'.format(func_name, mod_name))
         mod = importlib.import_module(mod_name)
         func = getattr(mod, func_name)
-        doc = docstring(func)
-        pprint.pprint(doc._parsed_data)
+        doc = docstring_func(func)
+        input_ports = define_input_ports(doc._parsed_data)
+        output_ports = define_output_ports(doc._parsed_data)
+        pprint.pprint(input_ports)
+        pprint.pprint(output_ports)
+        # pprint.pprint(doc._parsed_data)
         src = obj_src(func)
+        print('func_name {0}, module_name {1}. Time: {2}'
+              ''.format(func_name, mod_name, format(time.time() - t1)))
 
 
 if __name__ == "__main__":
@@ -135,21 +302,21 @@ if __name__ == "__main__":
     output_path = os.path.expanduser('~/.vistrails/userpackages/')
     import_list = [
         ('grid3d', 'nsls2.core'),
-        ('process_to_q', 'nsls2.recip'),
-        ('Element', 'nsls2.fitting.base.element'),
-        ('emission_line_search', 'nsls2.fitting.base.element_finder'),
-        ('snip_method', 'nsls2.fitting.model.background'),
-        ('gauss_peak', 'nsls2.fitting.model.physics_peak'),
-        ('gauss_step', 'nsls2.fitting.model.physics_peak'),
-        ('gauss_tail', 'nsls2.fitting.model.physics_peak'),
-        ('elastic_peak', 'nsls2.fitting.model.physics_peak'),
-        ('compton_peak', 'nsls2.fitting.model.physics_peak'),
-        ('read_binary', 'nsls2.io.binary'),
-        ('fit_quad_to_peak', 'nsls2.spectroscopy'),
-        ('align_and_scale', 'nsls2.spectroscopy'),
-        ('find_largest_peak', 'nsls2.spectroscopy'),
-        ('integrate_ROI_spectrum', 'nsls2.spectroscopy'),
-        ('integrate_ROI', 'nsls2.spectroscopy'),
+        # ('process_to_q', 'nsls2.recip'),
+        # ('Element', 'nsls2.constants'),
+        # ('emission_line_search', 'nsls2.constants'),
+        # ('snip_method', 'nsls2.fitting.model.background'),
+        # ('gauss_peak', 'nsls2.fitting.model.physics_peak'),
+        # ('gauss_step', 'nsls2.fitting.model.physics_peak'),
+        # ('gauss_tail', 'nsls2.fitting.model.physics_peak'),
+        # ('elastic_peak', 'nsls2.fitting.model.physics_peak'),
+        # ('compton_peak', 'nsls2.fitting.model.physics_peak'),
+        # ('read_binary', 'nsls2.io.binary'),
+        # ('fit_quad_to_peak', 'nsls2.spectroscopy'),
+        # ('align_and_scale', 'nsls2.spectroscopy'),
+        # ('find_largest_peak', 'nsls2.spectroscopy'),
+        # ('integrate_ROI_spectrum', 'nsls2.spectroscopy'),
+        # ('integrate_ROI', 'nsls2.spectroscopy'),
     ]
     do_wrap(output_path, import_list)
 
