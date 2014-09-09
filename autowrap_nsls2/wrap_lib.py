@@ -368,136 +368,145 @@ def gen_module(input_ports, output_ports, docstring,
     return new_class
 
 
-def do_wrap(import_list):
-    mod_list = []
-    for import_dict in import_list:
-        func_name = import_dict['name']
-        mod_name = import_dict['path']
-        try:
-            has_input_dict = import_dict['has_input_dict']
-        except KeyError:
-            has_input_dict = False
-        try:
-            namespace = import_dict['namespace']
-        except KeyError:
-            namespace = '|'.join(mod_name.split('.')[1:])
-            if not namespace:
-                namespace = mod_name
+def do_wrap(func_name, module_path, add_input_dict=False, namespace=None):
+    """Perform the wrapping of functions into VisTrails modules
 
-        logger.debug('func_name {0} has import path {1} and should be placed in'
-                     ' namespace {3}. It should include an '
-                     'input dictionary as a port ({2})'
-                     ''.format(func_name, mod_name, has_input_dict, namespace))
-        t1 = time.time()
-        # func_name, mod_name = imp
-        mod = importlib.import_module(mod_name)
-        func = getattr(mod, func_name)
+    Parameters
+    ----------
+    func_name : str
+        Name of the function to wrap into VisTrails. Example 'grid3d'
+    module_path : str
+        Name of the module which contains the function. Example: 'nsls2.core'
+    add_input_dict : bool, optional
+        Flag that instructs the wrapping machinery to add a dictionary input
+        port to the resultant VisTrails module. This dictionary port is
+        solely a convenience function whose main purpose is to unpack the
+        dictionary into the wrapped function
+    namespace : str
+        Path to the function in VisTrails.  This should be a string separated
+        by vertical bars: |.  Example: 'vis|test' will put the new VisTrail
+        module at the end of expandable lists vis -> test -> func_name
+    """
+    if namespace is None:
+        namespace = '|'.join(module_path.split('.')[1:])
+        if not namespace:
+            namespace = module_path
 
+    logger.debug('func_name {0} has import path {1} and should be placed in'
+                 ' namespace {3}. It should include an '
+                 'input dictionary as a port ({2})'
+                 ''.format(func_name, module_path, add_input_dict, namespace))
+    t1 = time.time()
+    # func_name, mod_name = imp
+    mod = importlib.import_module(module_path)
+    func = getattr(mod, func_name)
+
+    try:
         # get the source of the function
-        try:
-            src = obj_src(func)
-        except IOError as ioe:
-            # raised if the source cannot be found
-            logger.debug("IOError raised when attempting to get the source"
-                         "for function {0}".format(func))
-            raise IOError(ioe)
+        src = obj_src(func)
+    except IOError as ioe:
+        # raised if the source cannot be found
+        logger.debug("IOError raised when attempting to get the source"
+                     "for function {0}".format(func))
+        raise IOError(ioe)
+    try:
         # get the docstring of the function
-        try:
-            doc = docstring_func(func)
-        except ValueError as ve:
-            logger.debug("ValueError raised when attempting to get docstring "
-                         "for function {0}".format(func))
-            raise ValueError(ve)
+        doc = docstring_func(func)
+    except ValueError as ve:
+        logger.debug("ValueError raised when attempting to get docstring "
+                     "for function {0}".format(func))
+        raise ValueError(ve)
+    try:
         # create the VisTrails input ports
-        try:
-            input_ports = define_input_ports(doc._parsed_data)
-        except ValueError as ve:
-            logger.error('ValueError raised in attempt to format input_ports'
-                         ' in function: {0} in module: {1}'
-                         ''.format(func_name, mod_name))
-            raise ValueError(ve)
+        input_ports = define_input_ports(doc._parsed_data)
+    except ValueError as ve:
+        logger.error('ValueError raised in attempt to format input_ports'
+                     ' in function: {0} in module: {1}'
+                     ''.format(func_name, module_path))
+        raise ValueError(ve)
+    try:
         # create the VisTrails output ports
-        try:
-            output_ports = define_output_ports(doc._parsed_data)
-        except ValueError as ve:
-            logger.error('ValueError raised in attempt to format output_ports'
-                         ' in function: {0} in module: {1}'
-                         ''.format(func_name, mod_name))
-            raise ValueError(ve)
+        output_ports = define_output_ports(doc._parsed_data)
+    except ValueError as ve:
+        logger.error('ValueError raised in attempt to format output_ports'
+                     ' in function: {0} in module: {1}'
+                     ''.format(func_name, module_path))
+        raise ValueError(ve)
+    if add_input_dict:
         # define a dictionary input port if necessary
+        dict_port = IPort(name='input_dict', signature=('basic:Dictionary'),
+                          label='Dictionary of input parameters.'
+                                'Convienence port')
+        input_ports.append(dict_port)
+    else:
         dict_port = None
-        if has_input_dict:
-            dict_port = IPort(name='input_dict', signature=('basic:Dictionary'),
-                              label='Dictionary of input parameters.'
-                                    'Convienence port')
-            input_ports.append(dict_port)
 
-        mod_list.append(gen_module(input_ports=input_ports,
-                                   output_ports=output_ports,
-                                   docstring=src, module_name=func_name,
-                                   module_namespace=namespace,
-                                   library_func=func,
-                                   dict_port=dict_port))
-        pprint.pprint(input_ports)
-        pprint.pprint(output_ports)
-        # pprint.pprint(doc._parsed_data)
-        logger.debug('func_name {0}, module_name {1}. Time: {2}'
-                     ''.format(func_name, mod_name, format(time.time() - t1)))
-    return mod_list
+    # actually create the VisTrail module
+    gen_module(input_ports=input_ports, output_ports=output_ports,
+               docstring=src, module_name=func_name,
+               module_namespace=namespace, library_func=func,
+               dict_port=dict_port)
+
+    logger.info('func_name {0}, module_name {1}. Time: {2}'
+                 ''.format(func_name, module_path, format(time.time() - t1)))
+    return mod
 
 
 def run():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     logger.addHandler(ch)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     # perform the automagic wrapping
     import_list_funcs = [
-        {'name': 'grid3d',
-         'path': 'nsls2.core',
-         'has_input_dict': True,
+        {'func_name': 'grid3d',
+         'module_path': 'nsls2.core',
+         'add_input_dict': True,
          'namespace': 'core'},
-        {'name': 'process_to_q',
-         'path': 'nsls2.recip',
-         'has_input_dict': True,
+        {'func_name': 'process_to_q',
+         'module_path': 'nsls2.recip',
+         'add_input_dict': True,
          'namespace': 'recip'},
-        {'name': 'bin_1D',
-         'path':'nsls2.core',
-         'namespace': 'core'}
-        # {'name': 'emission_line_search',
-        #  'path': 'nsls2.constants',
-        #  'has_dict_input': True,
+        # {'func_name': 'bin_1D',
+        #  'module_path': 'nsls2.core',
         #  'namespace': 'core'},
-        # {'name': 'snip_method',
-        #  'path': 'nsls2.fitting.model.background',
-        #  'has_dict_input': True,
+        # {'func_name': 'emission_line_search',
+        #  'module_path': 'nsls2.constants',
+        #  'add_input_dict': True,
         #  'namespace': 'core'},
-        # {'name': 'gauss_peak',
-        #  'path': 'nsls2.fitting.model.physics_peak',
-        #  'has_dict_input': True,
+        # {'func_name': 'snip_method',
+        #  'module_path': 'nsls2.fitting.model.background',
+        #  'add_input_dict': True,
         #  'namespace': 'core'},
-        # {'name': 'gauss_step',
-        #  'path': 'nsls2.fitting.model.physics_peak'},
-        # {'name': 'gauss_tail',
-        #  'path': 'nsls2.fitting.model.physics_peak'},
-        # {'name': 'elastic_peak',
-        #  'path': 'nsls2.fitting.model.physics_peak'},
-        # {'name': 'compton_peak',
-        #  'path': 'nsls2.fitting.model.physics_peak'},
-        # {'name': 'read_binary',
-        #  'path': 'nsls2.io.binary'},
-        # {'name': 'fit_quad_to_peak',
-        #  'path': 'nsls2.spectroscopy'},
-        # {'name': 'align_and_scale',
-        #  'path': 'nsls2.spectroscopy'},
-        # {'name': 'find_largest_peak',
-        #  'path': 'nsls2.spectroscopy'},
-        # {'name': 'integrate_ROI_spectrum',
-        #  'path': 'nsls2.spectroscopy'},
-        # {'name': 'integrate_ROI',
-        #  'path': 'nsls2.spectroscopy'},
+        # {'func_name': 'gauss_peak',
+        #  'module_path': 'nsls2.fitting.model.physics_peak',
+        #  'add_input_dict': True,
+        #  'namespace': 'core'},
+        # {'func_name': 'gauss_step',
+        #  'module_path': 'nsls2.fitting.model.physics_peak'},
+        # {'func_name': 'gauss_tail',
+        #  'module_path': 'nsls2.fitting.model.physics_peak'},
+        # {'func_name': 'elastic_peak',
+        #  'module_path': 'nsls2.fitting.model.physics_peak'},
+        # {'func_name': 'compton_peak',
+        #  'module_path': 'nsls2.fitting.model.physics_peak'},
+        # {'func_name': 'read_binary',
+        #  'module_path': 'nsls2.io.binary'},
+        # {'func_name': 'fit_quad_to_peak',
+        #  'module_path': 'nsls2.spectroscopy'},
+        # {'func_name': 'align_and_scale',
+        #  'module_path': 'nsls2.spectroscopy'},
+        # {'func_name': 'find_largest_peak',
+        #  'module_path': 'nsls2.spectroscopy'},
+        # {'func_name': 'integrate_ROI_spectrum',
+        #  'module_path': 'nsls2.spectroscopy'},
+        # {'func_name': 'integrate_ROI',
+        #  'module_path': 'nsls2.spectroscopy'},
     ]
-    return do_wrap(output_path, import_list_funcs)
+    vt_mod_lst = []
+    for func in import_list_funcs:
+        vt_mod_lst.append(do_wrap(**func))
+    return vt_mod_lst
 
 
 if __name__ == "__main__":

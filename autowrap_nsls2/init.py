@@ -47,12 +47,65 @@ logger = logging.getLogger(__name__)
 pymod_list = []
 
 # local packages to import
-from . import wrap_nsls2
+from vttools import wrap_lib
+
+import_list_funcs = [
+    {'func_name': 'grid3d',
+     'module_path': 'nsls2.core',
+     'add_input_dict': True,
+     'namespace': 'core'},
+    {'func_name': 'process_to_q',
+     'module_path': 'nsls2.recip',
+     'add_input_dict': True,
+     'namespace': 'recip'},
+    {'func_name': 'bin_1D',
+     'module_path':'nsls2.core',
+     'namespace': 'core'}
+    # {'func_name': 'emission_line_search',
+    #  'module_path': 'nsls2.constants',
+    #  'has_dict_input': True,
+    #  'namespace': 'core'},
+    # {'func_name': 'snip_method',
+    #  'module_path': 'nsls2.fitting.model.background',
+    #  'has_dict_input': True,
+    #  'namespace': 'core'},
+    # {'func_name': 'gauss_peak',
+    #  'module_path': 'nsls2.fitting.model.physics_peak',
+    #  'has_dict_input': True,
+    #  'namespace': 'core'},
+    # {'func_name': 'gauss_step',
+    #  'module_path': 'nsls2.fitting.model.physics_peak'},
+    # {'func_name': 'gauss_tail',
+    #  'module_path': 'nsls2.fitting.model.physics_peak'},
+    # {'func_name': 'elastic_peak',
+    #  'module_path': 'nsls2.fitting.model.physics_peak'},
+    # {'func_name': 'compton_peak',
+    #  'module_path': 'nsls2.fitting.model.physics_peak'},
+    # {'func_name': 'read_binary',
+    #  'module_path': 'nsls2.io.binary'},
+    # {'func_name': 'fit_quad_to_peak',
+    #  'module_path': 'nsls2.spectroscopy'},
+    # {'func_name': 'align_and_scale',
+    #  'module_path': 'nsls2.spectroscopy'},
+    # {'func_name': 'find_largest_peak',
+    #  'module_path': 'nsls2.spectroscopy'},
+    # {'func_name': 'integrate_ROI_spectrum',
+    #  'module_path': 'nsls2.spectroscopy'},
+    # {'func_name': 'integrate_ROI',
+    #  'module_path': 'nsls2.spectroscopy'},
+]
 
 
 # register the things we imported successfully with vistrails
 def get_modules():
-    return wrap_nsls2.run()
+    wrap_lib.logger.setLevel(logging.INFO)
+    func_list = import_list_funcs[0:2]
+    return [wrap_lib.wrap_function(**func_dict) for func_dict in func_list]
+    # func_dict = {'func_name': 'func_wrap_smoke_test',
+    #              'module_path': '..autowrap_nsls2',
+    #              'add_input_dict': False, 'namespace': 'wrapping test'},
+    # # return wrap_lib.do_wrap(**func_dict)
+    # return wrap_lib.run()
 
 # init the modules list
 _modules = get_modules()

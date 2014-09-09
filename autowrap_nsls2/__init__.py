@@ -35,6 +35,6 @@
 import logging
 logger = logging.getLogger(__name__)
 
-identifier = 'org.vistrails.vistrails.autoNSLS2'
+identifier = 'org.vistrails.vistrails.autowrapNSLS2'
 name = 'autoNSLS2'
 version = '0.0.0'
