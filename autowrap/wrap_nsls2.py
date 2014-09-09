@@ -77,7 +77,8 @@ def obj_src(py_obj, escape_docstring=True):
     if escape_docstring:
         src.replace("'''", "\\'''")
         src.replace('"""', '\\"""')
-    return src.split('\n')
+    return src
+    # return src.split('\n')
 
 
 def docstring_class(pyobj):
@@ -417,16 +418,17 @@ def do_wrap(output_path, import_list):
             dict_port = IPort(name='input_dict', signature=('basic:Dictionary'),
                               label='Dictionary of input parameters.'
                                     'Convienence port')
+            input_ports.append(dict_port)
+
         mod_list.append(gen_module(input_ports=input_ports,
                                    output_ports=output_ports,
-                                   docstring=doc, module_name=func_name,
+                                   docstring=src, module_name=func_name,
                                    module_namespace=namespace,
                                    library_func=func,
                                    dict_port=dict_port))
         pprint.pprint(input_ports)
         pprint.pprint(output_ports)
         # pprint.pprint(doc._parsed_data)
-        src = obj_src(func)
         logger.debug('func_name {0}, module_name {1}. Time: {2}'
                      ''.format(func_name, mod_name, format(time.time() - t1)))
     return mod_list
@@ -442,11 +444,11 @@ def run():
     import_list_funcs = [
         {'name': 'grid3d',
          'path': 'nsls2.core',
-         'has_dict_input': True,
+         'has_input_dict': True,
          'namespace': 'core'},
         {'name': 'process_to_q',
          'path': 'nsls2.recip',
-         'has_dict_input': True,
+         'has_input_dict': True,
          'namespace': 'recip'},
         # {'name': 'emission_line_search',
         #  'path': 'nsls2.constants',
