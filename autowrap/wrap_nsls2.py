@@ -332,11 +332,23 @@ def gen_module(input_ports, output_ports, docstring,
             params_dict = self.get_input(dict_port.name)
 
         for opt in optional:
-            if self.has_input(opt.name):
-                params_dict[opt.name] = self.get_input(opt.name)
+            if self.has_input(opt):
+                params_dict[opt] = self.get_input(opt)
 
         for mand in mandatory:
-            params_dict[mand.name] = self.get_input(mand.name)
+            try:
+                params_dict[mand] = self.get_input(mand)
+            except ModuleError as me:
+                if mand in params_dict:
+                    # pass on this exception, as the dictionary on dict_port
+                    # has taken care of this key
+                    pass
+                else:
+                    logger.debug('The mandatory port {0} does not have input'
+                                 'and the input dictionary is either not '
+                                 'present or doesn\'t contain this key'
+                                 ''.format(mand))
+                    raise ModuleError(me)
 
         ret = library_func(**params_dict)
 
