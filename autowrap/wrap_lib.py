@@ -368,7 +368,7 @@ def gen_module(input_ports, output_ports, docstring,
     return new_class
 
 
-def do_wrap(output_path, import_list):
+def do_wrap(import_list):
     mod_list = []
     for import_dict in import_list:
         func_name = import_dict['name']
@@ -452,7 +452,6 @@ def run():
     logger.addHandler(ch)
     logger.setLevel(logging.DEBUG)
     # perform the automagic wrapping
-    output_path = os.path.expanduser('~/.vistrails/userpackages/')
     import_list_funcs = [
         {'name': 'grid3d',
          'path': 'nsls2.core',
