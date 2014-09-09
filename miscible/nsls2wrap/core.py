@@ -206,21 +206,25 @@ class Grid(Module):
         OPort(name='oob', signature="basic:Integer")
     ]
 
+    _optional = ['nx', 'ny', 'nz', 'xmin', 'ymin', 'zmin', 'xmax',
+                 'ymax', 'zmax']
+    _mandatory = ['q', 'img_stack']
+    _input_dict = {}
+
     def compute(self):
-        mandatory = ['q', 'img_stack']
-        optional = ['nx', 'ny', 'nz', 'xmin', 'ymin', 'zmin', 'xmax',
-                    'ymax', 'zmax']
-        input_dict = {}
+        mandatory = self._mandatory
+        optional = self._optional
+        input_dict = self._input_dict
         # gather mandatory input
         img_stack = self.get_input('img_stack')
         q = self.get_input('q')
         # input_dict = {m: self.get_input(m) for m in mandatory}
-        print('len(q), q.__class__: {0}, {1}'.
-              format(len(q), q.__class__))
-        print('len(q[0], q[0].__class__: {0}, {1}'.
-              format(len(q[0]), q[0].__class__))
-        print('len(q[0][0], q[0][0].__class__: {0}, {1}'.
-              format(len(q[0][0]), q[0][0].__class__))
+        # print('len(q), q.__class__: {0}, {1}'.
+        #       format(len(q), q.__class__))
+        # print('len(q[0], q[0].__class__: {0}, {1}'.
+        #       format(len(q[0]), q[0].__class__))
+        # print('len(q[0][0], q[0][0].__class__: {0}, {1}'.
+        #       format(len(q[0][0]), q[0][0].__class__))
         # q = np.asarray(q)
         # print('q.shape, q.__class__: {0}, {1}'.
         #       format(q.shape, q.__class__))
@@ -244,10 +248,11 @@ class Grid(Module):
             except ModuleError:
                 # will be thrown if there is no input on this port
                 logger.debug("No input on port: {0}".format(o))
+
         mean, std_err, occu, oob, bounds = grid3d(q, img_stack, **input_dict)
 
         self.set_output('mean', mean)
         self.set_output('std_err', std_err)
         self.set_output('occupancy', occu)
         self.set_output('oob', oob)
-        self.set_output('bounds', 'bounds')
+        self.set_output('bounds', bounds)
