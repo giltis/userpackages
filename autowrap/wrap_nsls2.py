@@ -43,10 +43,12 @@ import os
 import pprint
 import time
 import sys
-from vistrails.core.modules.vistrails_module import (Module, ModuleSettings,
+from vistrails.core.modules.vistrails_module import (Module,
+                                                     ModuleSettings,
                                                      ModuleError)
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
+from collections import namedtuple
 import logging
 logger = logging.getLogger(__name__)
 
@@ -163,22 +165,25 @@ def docstring_func(pyobj):
                          "Your parameter returned {0} from "
                          "type(pyobj)".format(type(pyobj)))
 
-sig_map = {
-    'basic:Variant': ['ndarray', 'array'],
-    'basic:List': ['list'],
-    'basic:Integer': ['int', 'integer'],
-    'basic:Float': ['float'],
-    'basic:Tuple': ['tuple'],
-    'basic:Dict': ['dict'],
-    'basic:Bool': ['bool'],
-    'basic:String': ['str', 'string'],
-}
 
-enum_map = {
-    'numpy.dtype': [np.intc, np.intp, np.int8, np.int16, np.int32, np.int64,
-                    np.uint8, np.uint16, np.uint64, np.float16, np.float32,
-                    np.float64, np.complex64, np.complex128],
-}
+sig_map = [
+    ('basic:Variant', ['ndarray', 'array']),
+    ('basic:List', ['list']),
+    ('basic:Integer', ['int', 'integer']),
+    ('basic:Float', ['float']),
+    ('basic:Tuple', ['tuple']),
+    ('basic:Dict', ['dict']),
+    ('basic:Bool', ['bool']),
+    ('basic:String', ['str', 'string'])
+]
+
+
+enum_map = [
+    ('numpy.dtype', [np.intc, np.intp, np.int8, np.int16, np.int32, np.int64,
+                     np.uint8, np.uint16, np.uint64, np.float16, np.float32,
+                     np.float64, np.complex64, np.complex128]),
+]
+
 
 def get_signature(arg_type):
     """Transform 'arg_type' into a vistrails port signature
@@ -193,7 +198,7 @@ def get_signature(arg_type):
     port_sig : str
         The VisTrails port signature
     """
-    for port_sig, pytypes in six.iteritems(sig_map):
+    for port_sig, pytypes in sig_map:
         if arg_type in pytypes:
             return port_sig
 
@@ -223,9 +228,9 @@ def define_input_ports(docstring):
             optional = False
             the_type = the_type.split(',')
             if len(the_type) == 1:
-                the_type = the_type[0]
+                the_type = the_type[0].lower()
             elif (len(the_type) == 2 and
-                          the_type[1].strip().lower() == 'optional'):
+                  the_type[1].strip().lower() == 'optional'):
                 # optional = the_type[1].strip()
                 # logger.debug('after stripping: [{0}]'.format(optional))
                 # if the_type[1].strip().lower() is 'optional':
@@ -244,16 +249,16 @@ def define_input_ports(docstring):
                          "optional: {3}. \n\tthe_description is {2}"
                          "".format(the_name, the_type, the_description,
                                    optional))
-
             input_ports.append(IPort(name=the_name, label=the_description,
                                      signature=get_signature(the_type),
                                      optional=optional))
-
     else:
         # raised if 'Parameters' is not in the docstring
         raise KeyError('Docstring is not formatted correctly. There is no '
                        '"Parameters" field. Your docstring: {0}'
                        ''.format(docstring))
+
+    logger.debug('dir of input_ports[0]: {0}'.format(dir(input_ports[0])))
 
     return input_ports
 
@@ -301,18 +306,96 @@ def define_output_ports(docstring):
     return output_ports
 
 
+def gen_module(input_ports, output_ports, docstring,
+               module_name, library_func, module_namespace,
+               dict_port=None):
+
+    mandatory = []
+    optional = []
+
+    # create the lists of mandatory and optional input ports
+    for port in input_ports:
+        if port == dict_port:
+            # since dict port must be in the input_ports list but we dont want
+            # to treat it as a normal input port, do not assign it as
+            # optional or mandatory
+            continue
+        if port.optional:
+            optional.append(port.name)
+        else:
+            mandatory.append(port.name)
+
+    def compute(self):
+        params_dict = {}
+        if dict_port is not None:
+            params_dict = self.get_input(dict_port.name)
+
+        for opt in optional:
+            if self.has_input(opt.name):
+                params_dict[opt.name] = self.get_input(opt.name)
+
+        for mand in mandatory:
+            params_dict[mand.name] = self.get_input(mand.name)
+
+        ret = library_func(**params_dict)
+
+        for (out_port, ret_val) in zip(output_ports, ret):
+            self.set_output(out_port.name, ret_val)
+
+    _settings = ModuleSettings(namespace=module_namespace)
+
+    new_class = type(str(module_name),
+                     (Module,), {'compute': compute,
+                                 '__module__': __name__,
+                                 '_settings': _settings,
+                                 '__doc__': docstring,
+                                 '__name__': module_name,
+                                 '_input_ports': input_ports,
+                                 '_output_ports': output_ports})
+    return new_class
+
+
 def do_wrap(output_path, import_list):
-    for (func_name, mod_name) in import_list:
+    mod_list = []
+    for import_dict in import_list:
+        func_name = import_dict['name']
+        mod_name = import_dict['path']
+        try:
+            has_input_dict = import_dict['has_input_dict']
+        except KeyError:
+            has_input_dict = False
+        try:
+            namespace = import_dict['namespace']
+        except KeyError:
+            namespace = '|'.join(mod_name.split('.')[1:])
+            if not namespace:
+                namespace = mod_name
+
+        logger.debug('func_name {0} has import path {1} and should be placed in'
+                     ' namespace {3}. It should include an '
+                     'input dictionary as a port ({2})'
+                     ''.format(func_name, mod_name, has_input_dict, namespace))
         t1 = time.time()
         # func_name, mod_name = imp
         mod = importlib.import_module(mod_name)
         func = getattr(mod, func_name)
+
+        # get the source of the function
+        try:
+            src = obj_src(func)
+        except IOError as ioe:
+            # raised if the source cannot be found
+            logger.debug("IOError raised when attempting to get the source"
+                         "for function {0}".format(func))
+            raise IOError(ioe)
+        # get the docstring of the function
         try:
             doc = docstring_func(func)
         except ValueError as ve:
             logger.debug("ValueError raised when attempting to get docstring "
                          "for function {0}".format(func))
             raise ValueError(ve)
+        # create the VisTrails input ports
         try:
             input_ports = define_input_ports(doc._parsed_data)
         except ValueError as ve:
@@ -320,6 +403,7 @@ def do_wrap(output_path, import_list):
                          ' in function: {0} in module: {1}'
                          ''.format(func_name, mod_name))
             raise ValueError(ve)
+        # create the VisTrails output ports
         try:
             output_ports = define_output_ports(doc._parsed_data)
         except ValueError as ve:
@@ -327,42 +411,84 @@ def do_wrap(output_path, import_list):
                          ' in function: {0} in module: {1}'
                          ''.format(func_name, mod_name))
             raise ValueError(ve)
+        # define a dictionary input port if necessary
+        dict_port = None
+        if has_input_dict:
+            dict_port = IPort(name='input_dict', signature=('basic:Dictionary'),
+                              label='Dictionary of input parameters.'
+                                    'Convienence port')
+        mod_list.append(gen_module(input_ports=input_ports,
+                                   output_ports=output_ports,
+                                   docstring=doc, module_name=func_name,
+                                   module_namespace=namespace,
+                                   library_func=func,
+                                   dict_port=dict_port))
         pprint.pprint(input_ports)
         pprint.pprint(output_ports)
         # pprint.pprint(doc._parsed_data)
         src = obj_src(func)
         logger.debug('func_name {0}, module_name {1}. Time: {2}'
                      ''.format(func_name, mod_name, format(time.time() - t1)))
+    return mod_list
 
 
-if __name__ == "__main__":
+def run():
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.DEBUG)
     logger.addHandler(ch)
+    logger.setLevel(logging.DEBUG)
     # perform the automagic wrapping
     output_path = os.path.expanduser('~/.vistrails/userpackages/')
     import_list_funcs = [
-        ('grid3d', 'nsls2.core'),
-        ('process_to_q', 'nsls2.recip'),
-        ('emission_line_search', 'nsls2.constants'),
-        ('snip_method', 'nsls2.fitting.model.background'),
-        ('gauss_peak', 'nsls2.fitting.model.physics_peak'),
-        ('gauss_step', 'nsls2.fitting.model.physics_peak'),
-        ('gauss_tail', 'nsls2.fitting.model.physics_peak'),
-        ('elastic_peak', 'nsls2.fitting.model.physics_peak'),
-        ('compton_peak', 'nsls2.fitting.model.physics_peak'),
-        ('read_binary', 'nsls2.io.binary'),
-        ('fit_quad_to_peak', 'nsls2.spectroscopy'),
-        ('align_and_scale', 'nsls2.spectroscopy'),
-        ('find_largest_peak', 'nsls2.spectroscopy'),
-        ('integrate_ROI_spectrum', 'nsls2.spectroscopy'),
-        ('integrate_ROI', 'nsls2.spectroscopy'),
+        {'name': 'grid3d',
+         'path': 'nsls2.core',
+         'has_dict_input': True,
+         'namespace': 'core'},
+        {'name': 'process_to_q',
+         'path': 'nsls2.recip',
+         'has_dict_input': True,
+         'namespace': 'recip'},
+        # {'name': 'emission_line_search',
+        #  'path': 'nsls2.constants',
+        #  'has_dict_input': True,
+        #  'namespace': 'core'},
+        # {'name': 'snip_method',
+        #  'path': 'nsls2.fitting.model.background',
+        #  'has_dict_input': True,
+        #  'namespace': 'core'},
+        # {'name': 'gauss_peak',
+        #  'path': 'nsls2.fitting.model.physics_peak',
+        #  'has_dict_input': True,
+        #  'namespace': 'core'},
+        # {'name': 'gauss_step',
+        #  'path': 'nsls2.fitting.model.physics_peak'},
+        # {'name': 'gauss_tail',
+        #  'path': 'nsls2.fitting.model.physics_peak'},
+        # {'name': 'elastic_peak',
+        #  'path': 'nsls2.fitting.model.physics_peak'},
+        # {'name': 'compton_peak',
+        #  'path': 'nsls2.fitting.model.physics_peak'},
+        # {'name': 'read_binary',
+        #  'path': 'nsls2.io.binary'},
+        # {'name': 'fit_quad_to_peak',
+        #  'path': 'nsls2.spectroscopy'},
+        # {'name': 'align_and_scale',
+        #  'path': 'nsls2.spectroscopy'},
+        # {'name': 'find_largest_peak',
+        #  'path': 'nsls2.spectroscopy'},
+        # {'name': 'integrate_ROI_spectrum',
+        #  'path': 'nsls2.spectroscopy'},
+        # {'name': 'integrate_ROI',
+        #  'path': 'nsls2.spectroscopy'},
     ]
-    do_wrap(output_path, import_list_funcs)
+    return do_wrap(output_path, import_list_funcs)
 
-    import_list_classes = [
-        ('Element', 'nsls2.constants')
-    ]
+
+if __name__ == "__main__":
+    run()
+    # import_list_classes = [
+    #     ('Element', 'nsls2.constants')
+    # ]
 
 """
 Runtime generation of classes:
