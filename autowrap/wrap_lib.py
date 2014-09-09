@@ -207,7 +207,7 @@ def get_signature(arg_type):
     # raise a value error
     raise ValueError("The arg_type doesn't match any of the options.  Your "
                      "arg_type is: {0}.  See the sig_type dictionary in "
-                     "userpackages/autowrap/wrap_nsls2.py".format(arg_type))
+                     "userpackages/autowrap/wrap_lib.py".format(arg_type))
 
 
 def define_input_ports(docstring):
@@ -462,6 +462,9 @@ def run():
          'path': 'nsls2.recip',
          'has_input_dict': True,
          'namespace': 'recip'},
+        {'name': 'bin_1D',
+         'path':'nsls2.core',
+         'namespace': 'core'}
         # {'name': 'emission_line_search',
         #  'path': 'nsls2.constants',
         #  'has_dict_input': True,
