@@ -32,25 +32,18 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE   #
 # POSSIBILITY OF SUCH DAMAGE.                                          #
 ########################################################################
-'''
-Created on Apr 29, 2014
-'''
 from __future__ import (absolute_import,
                         division,
                         print_function,
                         unicode_literals
-)
+                        )
 import logging
 logger = logging.getLogger(__name__)
-
-
-# create a single list of modules that need to be registered in
-# the nsls2 package
-pymod_list = []
 
 # local packages to import
 from vttools import wrap_lib
 
+# todo convert this to yaml or json
 import_list_funcs = [
     {'func_name': 'grid3d',
      'module_path': 'nsls2.core',
@@ -102,14 +95,5 @@ import_list_funcs = [
 # register the things we imported successfully with vistrails
 def vistrails_modules():
     wrap_lib.logger.setLevel(logging.INFO)
-    # print(import_list_funcs[3])
     func_list = import_list_funcs
     return [wrap_lib.wrap_function(**func_dict) for func_dict in func_list]
-    # func_dict = {'func_name': 'func_wrap_smoke_test',
-    #              'module_path': '..autowrap_nsls2',
-    #              'add_input_dict': False, 'namespace': 'wrapping test'},
-    # # return wrap_lib.do_wrap(**func_dict)
-    # return wrap_lib.run()
-
-# init the modules list
-# _modules = get_modules()
