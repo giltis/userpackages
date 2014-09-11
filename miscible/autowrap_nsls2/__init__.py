@@ -37,11 +37,10 @@ from __future__ import (absolute_import,
                         print_function,
                         unicode_literals
                         )
+from vttools import wrap_lib
 import logging
 logger = logging.getLogger(__name__)
 
-# local packages to import
-from vttools import wrap_lib
 
 # todo convert this to yaml or json
 import_list_funcs = [
