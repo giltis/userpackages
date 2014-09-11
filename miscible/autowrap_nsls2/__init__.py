@@ -99,7 +99,7 @@ import_list_funcs = [
 
 
 # register the things we imported successfully with vistrails
-def get_modules():
+def vistrails_modules():
     wrap_lib.logger.setLevel(logging.INFO)
     # print(import_list_funcs[3])
     func_list = import_list_funcs
@@ -111,4 +111,4 @@ def get_modules():
     # return wrap_lib.run()
 
 # init the modules list
-_modules = get_modules()
+# _modules = get_modules()

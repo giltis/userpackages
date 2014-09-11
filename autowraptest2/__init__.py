@@ -1,7 +1,7 @@
 # ######################################################################
 # Copyright (c) 2014, Brookhaven Science Associates, Brookhaven        #
 # National Laboratory. All rights reserved.                            #
-#                                                                      #
+# #
 # Redistribution and use in source and binary forms, with or without   #
 # modification, are permitted provided that the following conditions   #
 # are met:                                                             #
@@ -32,72 +32,10 @@
 # IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE   #
 # POSSIBILITY OF SUCH DAMAGE.                                          #
 ########################################################################
-'''
-Created on Apr 29, 2014
-'''
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-import six
 import logging
+
 logger = logging.getLogger(__name__)
 
-
-# create a single list of modules that need to be registered in
-# the nsls2 package
-pymod_list = []
-
-# local packages to import
-try:
-    from . import vis
-except ImportError as e:
-    logger.error("importing vis failed"
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(vis)
-
-try:
-    from . import broker
-except ImportError as e:
-    logger.error("importing broker failed"
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(broker)
-
-try:
-    from . import io
-except ImportError as e:
-    logger.error("importing io failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(io)
-
-try:
-    from . import autowrap_nsls2
-except ImportError as e:
-    logger.error("Imoprting autowrap_nsls2 failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(autowrap_nsls2)
-
-try:
-    from . import utils
-except ImportError as e:
-    logger.error("importing utils failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(utils)
-
-
-# register the things we imported successfully with vistrails
-def get_modules():
-    vistrails_modules = []
-    for python_modules in pymod_list:
-        for vismod in python_modules.vistrails_modules():
-            vistrails_modules.append(vismod)
-    return vistrails_modules
-
-# init the modules list
-_modules = get_modules()
-
-from . import utils
-utils.setup_bnl_menu()
+identifier = 'org.vistrails.vistrails.autowraptest2'
+name = 'autowraptest2'
+version = '0.0.0'

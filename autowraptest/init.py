@@ -1,7 +1,7 @@
 # ######################################################################
 # Copyright (c) 2014, Brookhaven Science Associates, Brookhaven        #
 # National Laboratory. All rights reserved.                            #
-#                                                                      #
+# #
 # Redistribution and use in source and binary forms, with or without   #
 # modification, are permitted provided that the following conditions   #
 # are met:                                                             #
@@ -38,8 +38,8 @@ Created on Apr 29, 2014
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from vttools import wrap_lib, test_functions
-import sys
+from vistrails.core.modules.vistrails_module import (Module)
+from vistrails.core.modules.config import IPort
 
 # create a single list of modules that need to be registered in
 # the nsls2 package
@@ -55,9 +55,18 @@ wrapped_mod = wrap_lib.wrap_function(func_name='func_wrap_smoke_test',
                                      add_input_dict=False,
                                      namespace='wraptest')
 
+
+class EnumTest(Module):
+    _input_ports = [IPort(name="op", signature="basic:String",
+                          entry_type="enum", values=["+", "-", "*", "/"])]
+
+    def compute(self):
+        pass
+
+
 print('module: {0}'.format(wrapped_mod))
 print('module.__mro__: {0}'.format(wrapped_mod.__mro__))
 print('type(module): {0}'.format(type(wrapped_mod)))
 print('dir(module): {0}'.format(dir(wrapped_mod)))
 
-_modules = [wrapped_mod]
+_modules = [wrapped_mod, EnumTest]
