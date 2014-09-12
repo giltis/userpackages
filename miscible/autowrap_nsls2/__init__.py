@@ -38,61 +38,22 @@ from __future__ import (absolute_import,
                         unicode_literals
                         )
 from vttools import wrap_lib
+import yaml
 import logging
+import os
 logger = logging.getLogger(__name__)
 
-
-# todo convert this to yaml or json
-import_list_funcs = [
-    {'func_name': 'grid3d',
-     'module_path': 'nsls2.core',
-     'add_input_dict': True,
-     'namespace': 'core'},
-    {'func_name': 'process_to_q',
-     'module_path': 'nsls2.recip',
-     'add_input_dict': True,
-     'namespace': 'recip'},
-    {'func_name': 'bin_1D',
-     'module_path': 'nsls2.core',
-     'namespace': 'core'},
-    # {'func_name': 'emission_line_search',
-    #  'module_path': 'nsls2.constants',
-    #  'has_dict_input': True,
-    #  'namespace': 'core'},
-    # {'func_name': 'snip_method',
-    #  'module_path': 'nsls2.fitting.model.background',
-    #  'has_dict_input': True,
-    #  'namespace': 'core'},
-    # {'func_name': 'gauss_peak',
-    #  'module_path': 'nsls2.fitting.model.physics_peak',
-    #  'has_dict_input': True,
-    #  'namespace': 'core'},
-    # {'func_name': 'gauss_step',
-    #  'module_path': 'nsls2.fitting.model.physics_peak'},
-    # {'func_name': 'gauss_tail',
-    #  'module_path': 'nsls2.fitting.model.physics_peak'},
-    # {'func_name': 'elastic_peak',
-    #  'module_path': 'nsls2.fitting.model.physics_peak'},
-    # {'func_name': 'compton_peak',
-    #  'module_path': 'nsls2.fitting.model.physics_peak'},
-    {'func_name': 'read_binary',
-     'module_path': 'nsls2.io.binary',
-     'namespace': 'io'},
-    # {'func_name': 'fit_quad_to_peak',
-    #  'module_path': 'nsls2.spectroscopy'},
-    # {'func_name': 'align_and_scale',
-    #  'module_path': 'nsls2.spectroscopy'},
-    # {'func_name': 'find_largest_peak',
-    #  'module_path': 'nsls2.spectroscopy'},
-    # {'func_name': 'integrate_ROI_spectrum',
-    #  'module_path': 'nsls2.spectroscopy'},
-    # {'func_name': 'integrate_ROI',
-    #  'module_path': 'nsls2.spectroscopy'},
-]
+print('os.path.dirname(os.path.realpath(__file__)): {0}'.format(
+    os.path.dirname(os.path.realpath(__file__))))
+# read yaml modules
+with open((os.path.dirname(os.path.realpath(__file__)) + os.sep +
+           'modules.yaml'), 'r') as modules:
+    import_list_funcs = yaml.load(modules)
 
 
-# register the things we imported successfully with vistrails
 def vistrails_modules():
     wrap_lib.logger.setLevel(logging.INFO)
     func_list = import_list_funcs
-    return [wrap_lib.wrap_function(**func_dict) for func_dict in func_list]
+    mods = [wrap_lib.wrap_function(**func_dict) for func_dict in func_list]
+    print('autowrapped modules: {0}'.format(mods))
+    return mods
