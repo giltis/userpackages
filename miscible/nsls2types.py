@@ -43,6 +43,7 @@ from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
 import logging
+from vttools.wrap_lib import sig_map
 logger = logging.getLogger(__name__)
 #
 # class ImageStack(Module):
@@ -76,3 +77,10 @@ class UBMatrix(Module):
                              "Input value: {0}\nResult of np.asarray(input): "
                              "{1}\nnp.asarray(input).shape: {2}"
                              "".format(ub_mat_list, self.ub, self.ub.shape))
+
+# add the pararmeter name 'ub' to the signature map in the library_wrapper
+sig_map['ub'] = 'org.vistrails.vistrails.NSLS2:UBMatrix'
+
+
+def vistrails_modules():
+    return [UBMatrix]
