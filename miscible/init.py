@@ -48,36 +48,12 @@ pymod_list = []
 
 # local packages to import
 try:
-    from . import vis
-except ImportError as e:
-    logger.error("importing vis failed"
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(vis)
-
-try:
     from . import broker
 except ImportError as e:
     logger.error("importing broker failed"
                  "\nOriginal Error: {0}".format(e))
 else:
     pymod_list.append(broker)
-
-try:
-    from . import io
-except ImportError as e:
-    logger.error("importing io failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(io)
-
-try:
-    from . import autowrap_nsls2
-except ImportError as e:
-    logger.error("Imoprting autowrap_nsls2 failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(autowrap_nsls2)
 
 try:
     from . import utils
@@ -87,11 +63,21 @@ except ImportError as e:
 else:
     pymod_list.append(utils)
 
+from . import io
+from . import autowrap_nsls2
+from . import nsls2types
+from . import vis
+
+pymod_list.append(io)
+pymod_list.append(autowrap_nsls2)
+pymod_list.append(nsls2types)
+pymod_list.append(vis)
+
 
 # register the things we imported successfully with vistrails
 def get_modules():
     vistrails_modules = []
-    for python_modules in pymod_list:
+    for python_modules in set(pymod_list):
         for vismod in python_modules.vistrails_modules():
             vistrails_modules.append(vismod)
     return vistrails_modules
@@ -99,5 +85,5 @@ def get_modules():
 # init the modules list
 _modules = get_modules()
 
-from . import utils
+
 utils.setup_bnl_menu()
