@@ -235,5 +235,32 @@ class Average(Module):
         self.set_output('avg_str',  str(avg))
 
 
+class SwapAxes(Module):
+    _settings = ModuleSettings(namespace="utility")
+    _input_ports = [
+        IPort(name='arr',
+              label='N-D array',
+              signature='basic:List'),
+        IPort(name='ax0',
+              label='Axis to swap from',
+              signature='basic:Integer'),
+        IPort(name='ax1',
+              label='Axis to swap from',
+              signature='basic:Integer'),
+    ]
+    _output_ports = [
+        OPort(name='out',
+              signature='basic:List')
+    ]
+
+    def compute(self):
+        arr = self.get_input('arr')
+        ax0 = self.get_input('ax0')
+        ax1 = self.get_input('ax1')
+        arr = np.asarray(arr)
+
+        self.set_output('out', np.swapaxes(arr, ax0, ax1))
+
+
 def vistrails_modules():
-    return [Flatten, Average]
+    return [Flatten, Average, SwapAxes]
