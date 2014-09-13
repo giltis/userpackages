@@ -87,7 +87,7 @@ def add_to_canvas(query_dict, unique_query_dict, single_result):
                                      'org.vistrails.vistrails.NSLS2',
                                      'Listify', 'broker')
         # change the key parameter to be 'key'
-        api.change_parameter(mod_listify.id, 'data_keys', [key])
+        api.change_parameter(mod_listify.id, 'data_key', [key])
         # change the module name to [key]
         controller.add_annotation(('__desc__', key),
                                   mod_listify.id)
@@ -262,5 +262,77 @@ class SwapAxes(Module):
         self.set_output('out', np.swapaxes(arr, ax0, ax1))
 
 
+class Crop2D(Module):
+    """Cropping Module
+
+    Create a binary mask for an image based on two points
+
+    +---------------------+
+    |                     |
+    | p1-> +----+         |
+    |      |    |         |
+    |      +----+ <- p2   |
+    |                     |
+    +---------------------+
+
+    p1 = (row, col)
+    p2 = (row, col)
+
+    Input ports are p1r, p1c, p2r, p2c.  Any combination of input ports are
+    valid.  If either of the p1 ports are not present their value will set to
+    zero.  If either of the p2 ports are not present, their value will be set
+    to the number of rows or columns, respectively.
+    """
+
+    _settings = ModuleSettings(namespace="utility")
+    _input_ports = [
+        IPort(name='num_rows',
+              label='Number of rows in the image',
+              signature='basic:Integer'),
+        IPort(name='num_cols',
+              label='Number of columns in the image',
+              signature='basic:Integer'),
+        IPort(name='top_left_row',
+              label='pixel coordinate of the row of the top left corner',
+              signature='basic:Integer'),
+        IPort(name='top_left_column',
+              label='pixel coordinate of the column of the top left corner',
+              signature='basic:Integer'),
+        IPort(name='bottom_right_row',
+              label='pixel coordinate of the row of the bottom right corner',
+              signature='basic:Integer'),
+        IPort(name='bottom_right_column',
+              label='pixel coordinate of the column of the bottom right corner',
+              signature='basic:Integer'),
+    ]
+    _output_ports = [
+        OPort(name='bin_mask',
+              signature='basic:Variant')
+    ]
+
+    def compute(self):
+        rows = self.get_input('num_rows')
+        cols = self.get_input('num_rows')
+        im = np.zeros((rows, cols), 'Bool')
+        p1c = 0
+        p1r = 0
+        p2c = cols
+        p2r = rows
+        if self.has_input('top_left_column'):
+            p1c = self.get_input('top_left_column')
+        if self.has_input('top_left_row'):
+            p1r = self.get_input('top_left_row')
+        if self.has_input('bottom_right_column'):
+            p2c = self.get_input('bottom_right_column')
+        if self.has_input('bottom_right_row'):
+            p2r = self.get_input('bottom_right_row')
+
+        for r in range(p1r, p2r):
+            for c in range(p1c, p2c):
+                im[r][c] = True
+
+        self.set_output('bin_mask', im)
+
+
 def vistrails_modules():
-    return [Flatten, Average, SwapAxes]
+    return [Flatten, Average, SwapAxes, Crop2D]
