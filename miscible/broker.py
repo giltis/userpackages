@@ -42,6 +42,7 @@ from PyQt4 import QtCore, QtGui
 from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
+from vttools.wrap_lib import sig_map
 import logging
 logger = logging.getLogger(__name__)
 
@@ -127,21 +128,103 @@ class CalibrationParameters(Module):
 
 
 class Listify(Module):
+    """
+    Turn the run header from the data broker into a list of data
+
+    metadataStore.analysisapi.listify source:
+
+        def listify(run_header, data_keys=None, bash_to_lower=True):
+        \"""Transpose the events into lists
+
+        from this:
+        run_header : {
+            "event_0_data" : {"key1": "val1", "key2": "val2", ...},
+            "event_1_data" : {"key1": "val1", "key2": "val2", ...},
+            ...
+            }
+
+        to this:
+        {"key1": [val1, val2, ...],
+         "key2" = [val1, val2, ...],
+         "keyN" = [val1, val2, ...],
+         "time" = [time1, time2, ...],
+        }
+
+        Parameters
+        ----------
+        run_header : dict
+            Run header to convert events to lists
+        event_descriptors_key : str
+            Name of the event_descriptor
+        data_keys : hashable or list, optional
+            - If data_key is a valid key for an event_data entry,
+              turn that event_data into a list
+            - If data_key is a list of valid keys for event_data
+              entries, turn those event_data keys into lists
+            - If data_key is None, turn all event data keys into
+              lists
+        bash_to_lower : boolean
+            True: Compare strings after casting to lowercase
+            False: Compare strings without casting to lowercase
+
+        Returns
+        -------
+        dict
+            data is keyed on run header data keys with an extra field 'time'
+        \"""
+        # get the keys from the run header
+        header_keys = get_data_keys(run_header)
+        if len(header_keys) == 1:
+            # turn it in to a list
+            header_keys = [header_keys]
+        # set defaults if necessary
+        if data_keys is None:
+            data_keys = header_keys
+
+        try:
+            # check for data_keys being iterable
+            data_keys.__iter__()
+        except AttributeError:
+            # turn data_keys in to a list
+            data_keys = [data_keys]
+
+        if not 'time' in data_keys:
+            data_keys.append('time')
+        # print('data_keys: {0}'.format(data_keys))
+        # forcibly cast to lower case
+        if bash_to_lower:
+            data_keys, header_keys = [[k.lower() for k in key_tmp] for
+                                      key_tmp in (data_keys, header_keys)]
+
+        # listify the data in the run header
+        data_dict = defaultdict(list)
+        # print('data_dict keys: {0}'.format(list(data_dict)))
+        for ev_desc_key, ev_desc_dict in \
+                six.iteritems(run_header['event_descriptors']):
+            data_key = list(ev_desc_dict['events'])
+            # data_key.sort(key=lambda x: int(x.split("_")[-1]))
+            # print("sorted data keys: {0}".format(data_key))
+            for index, (ev_key) in enumerate(data_key):
+                ev_dict = ev_desc_dict['events'][ev_key]
+                for data_key, data in six.iteritems(ev_dict['data']):
+                    if data_key in data_keys:
+                        data_dict[data_key].append(data)
+
+        return data_dict
+    """
     _settings = ModuleSettings(namespace="broker")
 
     _input_ports = [
         IPort(name="run_header",
               label="Run header from the data broker",
               signature="basic:Dictionary"),
-        IPort(name="data_keys",
+        IPort(name="data_key",
               label="The data key to turn in to a list",
-              signature="basic:String",
-              optional=True),
+              signature="basic:String"),
     ]
 
     _output_ports = [
         OPort(name="listified_data", signature="basic:List"),
-        OPort(name="data_keys", signature="basic:List"),
         OPort(name="listified_time", signature="basic:List"),
     ]
 
@@ -150,8 +233,8 @@ class Listify(Module):
         header = self.get_input("run_header")
 
         key = None
-        if self.has_input("data_keys"):
-            key = self.get_input("data_keys")
+        if self.has_input("data_key"):
+            key = self.get_input("data_key")
         # print('key input: {0}'.format(key))
         data_dict = listify(data_keys=key, run_header=header)
         # print('data_dict: {0}'.format(data_dict))
@@ -160,20 +243,29 @@ class Listify(Module):
         # stringify the datetime object that gets returned
         time = [t.isoformat() for t in time]
         # get the remaining keys
-        keys = list(data_dict)
-        data = [data_dict[key] for key in keys]
+        key = list(data_dict)
+        # verify that there is only one key in the dictionary
+        if len(key) != 1:
+            raise ValueError("The return value from "
+                             "metadataStore.analysisapi.utility.listify had "
+                             "more than one key. Keys: {0}".format(key))
+        key = key[0]
+        data = data_dict[key]
         # check to see if data is a list of lists
         if len(data) == 1 and isinstance(data[0], list):
             data = data[0]
+        # check to see if the data name exists in the sig_map dict. If so, this
+        # means that the data elements should be formatted into VisTrails
+        # objects
+        if key in sig_map:
+            sig = sig_map[key].split(':')
+            mod = self.registry.get_module_by_name(
+                sig[0], sig[1])
+            data = [mod(d) for d in data]
         # log the values set to the output ports at a debug level
-        # print('keys: {0}'.format(keys))
-        # print('data: {0}'.format(data))
-        # print('time: {0}'.format(time))
         logger.debug('data ', data)
-        logger.debug('keys ', keys)
         logger.debug('time ', time)
         # set the module's output
-        self.set_output("data_keys", keys)
         self.set_output("listified_data", data)
         self.set_output("listified_time", time)
 
