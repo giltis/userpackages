@@ -3,7 +3,6 @@
 - func_name: grid3d
   module_path: nsls2.core
   namespace: core
-  add_input_dict: true
 - func_name: process_to_q
   module_path: nsls2.recip
   namespace: recip
