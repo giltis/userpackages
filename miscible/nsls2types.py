@@ -43,6 +43,7 @@ from vistrails.core.modules.vistrails_module import Module, ModuleSettings
 from vistrails.core.modules.config import IPort, OPort
 import numpy as np
 import logging
+from vistrails.core.modules.basic_modules import Constant
 from vttools.wrap_lib import sig_map
 logger = logging.getLogger(__name__)
 #
@@ -51,15 +52,24 @@ logger = logging.getLogger(__name__)
 #     pass
 
 
-class UBMatrix(Module):
+class UBMatrix(Constant):
     """Module to specify a 3x3 matrix for VisTrails typing purposes
+
+    Any module that uses this as an input port should look for the 'value'
+    attribute to obtain the 3x3 matrix
 
     Attributes
     ----------
-    ub : ndarray
+    default_value : ndarray
         3x3 array representing the ub matrix
     """
+
     _settings = ModuleSettings(abstract=True)
+    _output_ports = [OPort(name='val_as_arr', signature='basic:Variant'),
+                     OPort(name='value', signature='UBMatrix'),
+                     OPort(name='value_as_str', signature='basic:String')]
+    _input_ports = [IPort(name='value', signature='UBMatrix')]
+    default_value = np.zeros((3, 3))
 
     def __init__(self, ub_mat_list):
         """
@@ -69,18 +79,43 @@ class UBMatrix(Module):
             List of 3 lists of length 3 that represents the ub matrix output
             from the data broker
         """
-        self.ub = np.asarray(ub_mat_list)
-        if self.ub.shape != (3, 3):
+        super(UBMatrix, self).__init__()
+        self.value = np.asarray(ub_mat_list)
+        if self.value.shape != (3, 3):
             raise ValueError("ub_mat_list is not formatted correctly.  Expected"
                              "a 3x3 array, or something that will result in a"
                              "3x3 array when np.asarray(input) is called. "
                              "Input value: {0}\nResult of np.asarray(input): "
                              "{1}\nnp.asarray(input).shape: {2}"
-                             "".format(ub_mat_list, self.ub, self.ub.shape))
+                             "".format(ub_mat_list, self.value, self.value.shape))
+
+    def translate_to_python(self, x):
+        return np.asarray(x)
+
+    def translate_to_string(self):
+        return six.text_type(self.value)
+
+    def validate(self, v):
+        if v.shape == (3, 3):
+            return True
+        return False
+
+    def __repr__(self):
+        return six.text_type(self.value)
+
+    def compute(self):
+        if self.value is None:
+            self.value = self.get_input('value')
+
+        self.set_output('val_as_arr', self.value)
+        self.set_output('value', self)
+        self.set_output('value', self.__repr__)
+
 
 # add the pararmeter name 'ub' to the signature map in the library_wrapper
-sig_map['ub'] = 'org.vistrails.vistrails.NSLS2:UBMatrix'
+# sig_map['ub'] = 'org.vistrails.vistrails.NSLS2:UBMatrix'
 
 
 def vistrails_modules():
-    return [UBMatrix]
+    # return [UBMatrix]
+    return []
