@@ -2,11 +2,10 @@
 # there are two possible keys:
 #  - 'import' are for python modules that have a
 #     _vistrails_modules() function within them
-#  - 'autowrap' are for python functions or classes
+#  - 'autowrap_func' are for python functions
 #     that should be wrapped into vistrails
-#    - 'autowrap' is segregated into functions and
-#       classes by the keys that are used within the
-#       dict.
+#  - 'autowrap_class' are for python classes
+#     that should be wrapped into vistrails
 
 # list of modules to import
 import_modules:
@@ -16,10 +15,8 @@ import_modules:
         - .utils
         - .broker
 
-# list of functions or classes to autowrap
-# if wrapping a function, use the key 'func_name'
-# if wrapping a class, use the key 'class_name'
-autowrap:
+# list of functions to autowrap
+autowrap_func:
 - func_name: grid3d
   module_path: nsls2.core
   namespace: core
