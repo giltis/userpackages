@@ -48,8 +48,8 @@ logger = logging.getLogger(__name__)
 
 
 # read yaml modules
-with open((os.path.dirname(os.path.realpath(__file__)) + os.sep +
-           'modules.yaml'), 'r') as modules:
+with open((os.path.dirname(os.path.join(os.path.realpath(__file__)),
+                           'modules.yaml')), 'r') as modules:
     import_dict = yaml.load(modules)
     print('import_dict: {0}'.format(import_dict))
 
@@ -76,10 +76,10 @@ def get_modules():
         print(msg)
         logging.error(msg)
         six.reraise(*sys.exc_info())
-    else:
-        print('imported hand-built VT modules: {0}'.format(pymods))
-        vtmods = [vtmod for mod in pymods for vtmod in mod.vistrails_modules()]
-        return list(set(vtmods + vtfuncs))
+
+    vtmods = [vtmod for mod in pymods for vtmod in mod.vistrails_modules()]
+    # return the valid VisTrails modules
+    return list(set(vtmods + vtfuncs))
 
 
 # # init the modules list
