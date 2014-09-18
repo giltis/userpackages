@@ -43,6 +43,7 @@ import sys
 import yaml
 import importlib
 import os
+from vttools import wrap_lib
 logger = logging.getLogger(__name__)
 
 
@@ -54,13 +55,21 @@ with open((os.path.dirname(os.path.realpath(__file__)) + os.sep +
 
 
 def get_modules():
-    # import the hand-built VisTrails modules
+    # set defaults
     try:
-        import_modules = import_dict['import_modules']
-        print('import_modules: {0}'.format(import_modules))
+        # import the hand-built VisTrails modules
+        module_list = import_dict['import_modules']
         pymods = [importlib.import_module(module_name, module_path)
-                  for module_path, mod_lst in six.iteritems(import_modules)
+                  for module_path, mod_lst in six.iteritems(module_list)
                   for module_name in mod_lst]
+        # autowrap functions
+        func_list = import_dict['autowrap_func']
+        vtfuncs = [wrap_lib.wrap_function(**func_dict)
+                   for func_dict in func_list]
+        # autowrap classes
+        # class_list = import_dict['autowrap_func']
+        # vtclasses = [wrap_lib.wrap_function(**func_dict)
+        #              for func_dict in class_list]
     except ImportError as ie:
         msg = ("importing {0} failed\n" "Original Error: "
                "{1}".format(module_name, module_path, ie))
@@ -69,8 +78,9 @@ def get_modules():
         six.reraise(*sys.exc_info())
     else:
         print('imported hand-built VT modules: {0}'.format(pymods))
-        return [vtmod for mod in pymods for vtmod in
-                mod.vistrails_modules()]
+        vtmods = [vtmod for mod in pymods for vtmod in mod.vistrails_modules()]
+        return list(set(vtmods + vtfuncs))
+
 
 # # init the modules list
 _modules = get_modules()
