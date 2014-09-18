@@ -39,65 +39,67 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import six
 import logging
+import sys
+import yaml
+import importlib
+import collections
+import os
+from vttools import wrap_lib
 logger = logging.getLogger(__name__)
 
 
-# create a single list of modules that need to be registered in
-# the nsls2 package
-pymod_list = []
+# read yaml modules
+with open(os.path.join((os.path.dirname(os.path.realpath(__file__))),
+                       'modules.yaml'), 'r') as modules:
+    import_dict = yaml.load(modules)
+    print('import_dict: {0}'.format(import_dict))
 
-# local packages to import
-try:
-    from . import vis
-except ImportError as e:
-    print("importing vis failed"
-          "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(vis)
-
-try:
-    from . import broker
-except ImportError as e:
-    print("importing broker failed"
-          "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(broker)
-
-try:
-    from . import io
-except ImportError as e:
-    print("importing io failed."
-          "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(io)
-
-try:
-    from . import nsls2wrap
-except ImportError as e:
-    print("importing nsls2wrap failed."
-          "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(nsls2wrap)
-
-try:
-    from . import utils
-except ImportError as e:
-    print("importing utils failed."
-          "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(utils)
+class AutowrapError(Exception):
 
 
-# register the things we imported successfully with vistrails
+
 def get_modules():
-    vistrails_modules = []
-    for python_modules in pymod_list:
-        for vismod in python_modules.vistrails_modules():
-            vistrails_modules.append(vismod)
-    return vistrails_modules
+    # set defaults
+    try:
+        # import the hand-built VisTrails modules
+        module_list = import_dict['import_modules']
+        pymods = [importlib.import_module(module_name, module_path)
+                  for module_path, mod_lst in six.iteritems(module_list)
+                  for module_name in mod_lst]
+        # autowrap functions
+        func_list = import_dict['autowrap_func']
+        vtfuncs = [wrap_lib.wrap_function(**func_dict)
+                   for func_dict in func_list]
+        # autowrap classes
+        # class_list = import_dict['autowrap_classes']
+        # vtclasses = [wrap_lib.wrap_function(**func_dict)
+        #              for func_dict in class_list]
+    except ImportError as ie:
+        msg = ('importing {0} failed\nOriginal Error: {1}'
+               ''.format(module_name, module_path, ie))
+        print(msg)
+        logging.error(msg)
+        six.reraise(*sys.exc_info())
+    except AutowrapError as ae:
+        msg = ('autowrapping {0} failed\nOriginal Error: {1}'.format(func_dict,
+                                                                     ae))
+        print(msg)
+        logging.error(msg)
+        six.reraise(*sys.exc_info())
 
-# init the modules list
+    vtmods = [vtmod for mod in pymods for vtmod in mod.vistrails_modules()]
+
+    all_mods = vtmods + vtfuncs  # + vtclasses
+    if len(all_mods) != len(set(all_mods)):
+        raise ValueError('Some modules have been imported multiple times.\n'
+                         'Full list: {0}'
+                         ''.format([x for x, y in
+                                    collections.Counter(all_mods).items()
+                                    if y > 1]))
+
+    # return the valid VisTrails modules
+    return all_mods
+
+
+# # init the modules list
 _modules = get_modules()
-
-from . import utils
-utils.setup_bnl_menu()
