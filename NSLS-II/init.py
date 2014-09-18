@@ -39,51 +39,38 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import six
 import logging
+import sys
+import yaml
+import importlib
+import os
 logger = logging.getLogger(__name__)
 
 
-# create a single list of modules that need to be registered in
-# the nsls2 package
-pymod_list = []
-
-# local packages to import
-try:
-    from . import broker
-except ImportError as e:
-    logger.error("importing broker failed"
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(broker)
-
-try:
-    from . import utils
-except ImportError as e:
-    logger.error("importing utils failed."
-                 "\nOriginal Error: {0}".format(e))
-else:
-    pymod_list.append(utils)
-
-from . import io
-from . import autowrap_nsls2
-from . import nsls2types
-from . import vis
-
-pymod_list.append(io)
-pymod_list.append(autowrap_nsls2)
-pymod_list.append(nsls2types)
-pymod_list.append(vis)
+# read yaml modules
+with open((os.path.dirname(os.path.realpath(__file__)) + os.sep +
+           'modules.yaml'), 'r') as modules:
+    import_dict = yaml.load(modules)
+    print('import_dict: {0}'.format(import_dict))
 
 
-# register the things we imported successfully with vistrails
 def get_modules():
-    vistrails_modules = []
-    for python_modules in set(pymod_list):
-        for vismod in python_modules.vistrails_modules():
-            vistrails_modules.append(vismod)
-    return vistrails_modules
+    # import the hand-built VisTrails modules
+    try:
+        import_modules = import_dict['import_modules']
+        print('import_modules: {0}'.format(import_modules))
+        pymods = [importlib.import_module(module_name, module_path)
+                  for module_path, mod_lst in six.iteritems(import_modules)
+                  for module_name in mod_lst]
+    except ImportError as ie:
+        msg = ("importing {0} failed\n" "Original Error: "
+               "{1}".format(module_name, module_path, ie))
+        print(msg)
+        logging.error(msg)
+        six.reraise(*sys.exc_info())
+    else:
+        print('imported hand-built VT modules: {0}'.format(pymods))
+        return [vtmod for mod in pymods for vtmod in
+                mod.vistrails_modules()]
 
-# init the modules list
+# # init the modules list
 _modules = get_modules()
-
-
-utils.setup_bnl_menu()
