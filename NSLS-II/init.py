@@ -48,8 +48,8 @@ logger = logging.getLogger(__name__)
 
 
 # read yaml modules
-with open((os.path.dirname(os.path.join(os.path.realpath(__file__)),
-                           'modules.yaml')), 'r') as modules:
+with open(os.path.join((os.path.dirname(os.path.realpath(__file__))),
+                       'modules.yaml'), 'r') as modules:
     import_dict = yaml.load(modules)
     print('import_dict: {0}'.format(import_dict))
 
