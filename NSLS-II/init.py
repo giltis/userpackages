@@ -42,6 +42,7 @@ import logging
 import sys
 import yaml
 import importlib
+import collections
 import os
 from vttools import wrap_lib
 logger = logging.getLogger(__name__)
@@ -52,6 +53,9 @@ with open(os.path.join((os.path.dirname(os.path.realpath(__file__))),
                        'modules.yaml'), 'r') as modules:
     import_dict = yaml.load(modules)
     print('import_dict: {0}'.format(import_dict))
+
+class AutowrapError(Exception):
+
 
 
 def get_modules():
@@ -67,19 +71,34 @@ def get_modules():
         vtfuncs = [wrap_lib.wrap_function(**func_dict)
                    for func_dict in func_list]
         # autowrap classes
-        # class_list = import_dict['autowrap_func']
+        # class_list = import_dict['autowrap_classes']
         # vtclasses = [wrap_lib.wrap_function(**func_dict)
         #              for func_dict in class_list]
     except ImportError as ie:
-        msg = ("importing {0} failed\n" "Original Error: "
-               "{1}".format(module_name, module_path, ie))
+        msg = ('importing {0} failed\nOriginal Error: {1}'
+               ''.format(module_name, module_path, ie))
+        print(msg)
+        logging.error(msg)
+        six.reraise(*sys.exc_info())
+    except AutowrapError as ae:
+        msg = ('autowrapping {0} failed\nOriginal Error: {1}'.format(func_dict,
+                                                                     ae))
         print(msg)
         logging.error(msg)
         six.reraise(*sys.exc_info())
 
     vtmods = [vtmod for mod in pymods for vtmod in mod.vistrails_modules()]
+
+    all_mods = vtmods + vtfuncs  # + vtclasses
+    if len(all_mods) != len(set(all_mods)):
+        raise ValueError('Some modules have been imported multiple times.\n'
+                         'Full list: {0}'
+                         ''.format([x for x, y in
+                                    collections.Counter(all_mods).items()
+                                    if y > 1]))
+
     # return the valid VisTrails modules
-    return list(set(vtmods + vtfuncs))
+    return all_mods
 
 
 # # init the modules list
