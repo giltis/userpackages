@@ -30,9 +30,77 @@ autowrap_func:
 - func_name: read_binary
   module_path: nsls2.io.binary
   namespace: io
-
-#- {func_name: emission_line_search, module_path: nsls2.constants,  namespace: core, add_input_dict: true}
-#- {func_name: snip_method, module_path: nsls2.fitting.model.background,namespace: core, add_input_dict: true}
+- func_name: load_amiramesh
+  module_path: nsls2.io.avizo_io
+  namespace: io
+- func_name: load_netCDF
+  module_path: nsls2.io.net_cdf_io
+  namespace: io
+- func_name: hist_make
+  module_path: nsls2.img_proc.histops
+  namespace: image processing|histogram
+- func_name: rescale_intensity_values
+  module_path: nsls2.img_proc.histops
+  namespace: image processing|histogram
+- func_name: gaussian_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: median_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: minimum_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: maximum_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: gaussian_gradient_magnitude
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: gaussian_laplace
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: laplace
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: percentile_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: sobel
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: binary_opening
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: binary_closing
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: binary_erosion
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: binary_dilation
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: grey_opening
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: grey_closing
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: grey_erosion
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: grey_dilation
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: binary_fill_holes
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+- func_name: binary_propagation
+  module_path: nsls2.img_proc.morphology
+  namespace: image processing|morphology
+#- {func_name: emission_line_search, module_path: nsls2.constants, namespace: core, add_input_dict: true}
+#- {func_name: snip_method, module_path: nsls2.fitting.model.background, namespace: core, add_input_dict: true}
 #- {func_name: gauss_peak, module_path: nsls2.fitting.model.physics_peak, namespace:core, add_input_dict: true}
 #- {func_name: gauss_step, module_path: nsls2.fitting.model.physics_peak}
 #- {func_name: gauss_tail, module_path: nsls2.fitting.model.physics_peak}
