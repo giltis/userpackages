@@ -99,6 +99,18 @@ autowrap_func:
 - func_name: binary_propagation
   module_path: nsls2.img_proc.morphology
   namespace: image processing|morphology
+- func_name: swap_axes
+  module_path: nsls2.img_proc.transform
+  namespace: image processing|transform
+- func_name: flip_axis
+  module_path: nsls2.img_proc.transform
+  namespace: image processing|transform
+- func_name: crop_volume
+  module_path: nsls2.img_proc.transform
+  namespace: image processing|transform
+- func_name: rotate_volume
+  module_path: nsls2.img_proc.transform
+  namespace: image processing|transform
 #- {func_name: emission_line_search, module_path: nsls2.constants, namespace: core, add_input_dict: true}
 #- {func_name: snip_method, module_path: nsls2.fitting.model.background, namespace: core, add_input_dict: true}
 #- {func_name: gauss_peak, module_path: nsls2.fitting.model.physics_peak, namespace:core, add_input_dict: true}
