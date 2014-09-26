@@ -111,6 +111,27 @@ autowrap_func:
 - func_name: rotate_volume
   module_path: nsls2.img_proc.transform
   namespace: image processing|transform
+- func_name: thresh_globalGT
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_globalLT
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_bounded
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_adapt
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_otsu
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_yen
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
+- func_name: thresh_isodata
+  module_path: nsls2.img_proc.threshops
+  namespace: image processing|thresholding
 #- {func_name: emission_line_search, module_path: nsls2.constants, namespace: core, add_input_dict: true}
 #- {func_name: snip_method, module_path: nsls2.fitting.model.background, namespace: core, add_input_dict: true}
 #- {func_name: gauss_peak, module_path: nsls2.fitting.model.physics_peak, namespace:core, add_input_dict: true}
