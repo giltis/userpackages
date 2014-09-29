@@ -69,6 +69,12 @@ autowrap_func:
 - func_name: sobel
   module_path: nsls2.img_proc.filterops
   namespace: image processing|filters
+- func_name: prewitt
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
+- func_name: rank_filter
+  module_path: nsls2.img_proc.filterops
+  namespace: image processing|filters
 - func_name: binary_opening
   module_path: nsls2.img_proc.morphology
   namespace: image processing|morphology
@@ -144,3 +150,10 @@ autowrap_func:
 #- {func_name: find_largest_peak, module_path: nsls2.spectroscopy}
 #- {func_name: integrate_ROI_spectrum, module_path: nsls2.spectroscopy}
 #- {func_name: integrate_ROI, module_path: nsls2.spectroscopy}
+#- func_name: uniform_filter, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: fourier_ellipsoid, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: fourier_gaussian, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: fourier_shift, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: fourier_uniform, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: TV_filter, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
+#- func_name: NL_means, module_path: nsls2.img_proc.filterops, namespace: image processing|filters
